@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>令和6年度 奈良県内市町村優先調達実績</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+html, body { margin:0; padding:0; height:100%; overflow-y:auto; font-family:sans-serif; }
+
+/* 画面上部タイトル */
+h1{text-align:center;margin:10px 0;}
+
+/* 上段（マップ＋右チャート）ラップ */
+#topArea{
+  display:flex;
+  flex-wrap:wrap;    /* 画面幅が狭いとき縦並びに崩れる */
+  gap:10px;
+  padding:10px;
+  align-items:flex-start;  /* 追加：高さ揃えない → マップ縮小でも押し上げない */
+}
+
+/* 左側：マップ */
+#map{
+  flex: 1 1 50%;     /* 通常は50%幅、縮んだら可変 */
+  max-width:100%;
+  height:auto;
+  background:#fff;
+  border:none;
+  /* 追加 ↓ */
+  max-height: 90vh;   /* 画面の高さ以内に収める */
+  object-fit: cover;
+  display:block /* 追加！これが重要 */
+}
+
+/* 右側：市町村クリック時の棒グラフ */
+#chart-container{
+  flex:1 1 45%;
+  min-width:300px;
+  padding:10px;
+  box-sizing:border-box;
+  border:none;
+  height:65vh;   /* ← これを追加（例：高さを画面の70%） */
+}
+
+text { font-size:32px; pointer-events:none; }
+.box { 
+  stroke:#555; 
+  stroke-width:2; 
+  rx:16; 
+  ry:16; 
+  cursor:pointer;
+  pointer-events:auto;
+}
+#total-label{text-align:center;font-weight:bold;margin-top:6px;}
+
+@media (max-width:900px){
+  #topArea{
+    flex-direction:column; /* スマホ等では縦配置 */
+  }
+  #map, #chart-container{
+    width:100%;
+    height:auto;          /* ← 高さ自動調整、これが無いと無限に伸びる */
+  }
+  #chart-container{
+    padding-top: 5px;       /* ← 上余白を縮小 */
+    margin-top: 0;
+  }
+  #chart{
+    height:400px !important; /* ← キャンバスの実高さを確保（伸び防止） */
+  }
+  #chart-title{
+    margin-top: 0;
+  }
+}
+
+/* ▼ Chart.jsが高さを引き伸ばさないようにする */
+#rankingChart{
+  max-height:600px;        /* heightではなく max-height に変更 */
+}
+#chart{
+  flex:1;
+  /* max-height:90vh;         画面の高さ以内に収める */
+  object-fit: contain;
+}
+
+/* グラフ中央上に重ねるタイトル */
+#chart-title{font-size:20px;font-weight:bold;margin-bottom:5px;text-align:center;}
+
+/* ▼ ランキングセクションをフレックス外で正しく下に配置 */
+#rankingSection{
+  width:100%;
+  display:block;
+  margin-top:50px;
+}
+
+/* ▼ ランキングチャートの幅を少し縮める */
+#rankingChart {
+  width: 90% !important;   /* ← 100%より少し狭く */
+  max-width: 950px;        /* 広すぎないよう上限設定 */
+  margin: 0 auto;          /* 中央寄せ */
+  display: block;
+}
+</style>
+</head>
+
+<body>
+<h1 style="text-align:center; margin-top:20px;">
+  令和6年度 奈良県内市町村優先調達実績
+</h1>
+<p style="text-align:center; margin-top:20px;">※「県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
+
+<!-- ▼ 上段：横並び -->
+<div id="topArea">
+<svg id="map" viewBox="0 0 1400 1475" xmlns="http://www.w3.org/2000/svg">
+
+<!-- 1段目 -->
+<rect id="生駒市" x="50" y="0" width="400" height="150" class="box" fill="#ffb6c1"/>
+<text x="250" y="75" text-anchor="middle" dominant-baseline="middle">生駒市</text>
+
+<rect id="平群町" x="50" y="150" width="400" height="75" class="box" fill="#87cefa"/>
+<text x="250" y="187.5" text-anchor="middle" dominant-baseline="middle">平群町</text>
+
+<rect id="奈良市" x="450" y="0" width="600" height="150" class="box" fill="#ffb6c1"/>
+<text x="750" y="75" text-anchor="middle" dominant-baseline="middle">奈良市</text>
+
+<rect id="大和郡山市" x="450" y="150" width="400" height="75" class="box" fill="#ffb6c1"/>
+<text x="650" y="187.5" text-anchor="middle" dominant-baseline="middle">大和郡山市</text>
+
+<rect id="山添村" x="1050" y="0" width="200" height="150" class="box" fill="#90ee90"/>
+<text x="1150" y="75" text-anchor="middle" dominant-baseline="middle">山添村</text>
+
+<!-- ▼ここから下は全て 元のy +75 -->
+
+<!-- 2段目 -->
+<rect id="三郷町" x="50" y="225" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="150" y="262.5" text-anchor="middle" dominant-baseline="middle">三郷町</text>
+<rect id="王寺町" x="50" y="300" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="150" y="337.5" text-anchor="middle" dominant-baseline="middle">王寺町</text>
+
+<rect id="斑鳩町" x="250" y="225" width="200" height="150" class="box" fill="#87cefa"/>
+<text x="350" y="300" text-anchor="middle" dominant-baseline="middle">斑鳩町</text>
+<rect id="安堵町" x="450" y="225" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="550" y="262.5" text-anchor="middle" dominant-baseline="middle">安堵町</text>
+<rect id="川西町" x="650" y="225" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="750" y="262.5" text-anchor="middle" dominant-baseline="middle">川西町</text>
+
+<rect id="天理市" x="850" y="150" width="200" height="262.5" class="box" fill="#ffb6c1"/>
+<text x="950" y="281.25" text-anchor="middle" dominant-baseline="middle">天理市</text>
+
+<rect id="宇陀市" x="1050" y="150" width="200" height="525" class="box" fill="#ffb6c1"/>
+<text x="1150" y="412.5" text-anchor="middle" dominant-baseline="middle">宇陀市</text>
+
+<!-- 3段目 -->
+<rect id="香芝市" x="50" y="375" width="200" height="150" class="box" fill="#ffb6c1"/>
+<text x="150" y="450" text-anchor="middle" dominant-baseline="middle">香芝市</text>
+<rect id="上牧町" x="250" y="375" width="200" height="150" class="box" fill="#87cefa"/>
+<text x="350" y="450" text-anchor="middle" dominant-baseline="middle">上牧町</text>
+
+<rect id="河合町" x="450" y="300" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="550" y="337.5" text-anchor="middle" dominant-baseline="middle">河合町</text>
+<rect id="広陵町" x="450" y="375" width="200" height="150" class="box" fill="#87cefa"/>
+<text x="550" y="450" text-anchor="middle" dominant-baseline="middle">広陵町</text>
+
+<rect id="三宅町" x="650" y="300" width="200" height="75" class="box" fill="#87cefa"/>
+<text x="750" y="337.5" text-anchor="middle" dominant-baseline="middle">三宅町</text>
+<rect id="田原本町" x="650" y="375" width="200" height="150" class="box" fill="#87cefa"/>
+<text x="750" y="450" text-anchor="middle" dominant-baseline="middle">田原本町</text>
+
+<rect id="桜井市" x="850" y="412.5" width="200" height="262.5" class="box" fill="#ffb6c1"/>
+<text x="950" y="543.75" text-anchor="middle" dominant-baseline="middle">桜井市</text>
+
+<!-- 4段目 -->
+<rect id="葛城市" x="50" y="525" width="200" height="150" class="box" fill="#ffb6c1"/>
+<text x="150" y="600" text-anchor="middle" dominant-baseline="middle">葛城市</text>
+<rect id="大和高田市" x="250" y="525" width="200" height="150" class="box" fill="#ffb6c1"/>
+<text x="350" y="600" text-anchor="middle" dominant-baseline="middle">大和高田市</text>
+<rect id="橿原市" x="450" y="525" width="200" height="150" class="box" fill="#ffb6c1"/>
+<text x="550" y="600" text-anchor="middle" dominant-baseline="middle">橿原市</text>
+<rect id="明日香村" x="650" y="525" width="200" height="150" class="box" fill="#90ee90"/>
+<text x="750" y="600" text-anchor="middle" dominant-baseline="middle">明日香村</text>
+
+<!-- 5段目 -->
+<rect id="御所市" x="50" y="675" width="240" height="150" class="box" fill="#ffb6c1"/>
+<text x="170" y="750" text-anchor="middle" dominant-baseline="middle">御所市</text>
+<rect id="高取町" x="290" y="675" width="240" height="75" class="box" fill="#87cefa"/>
+<text x="410" y="712.5" text-anchor="middle" dominant-baseline="middle">高取町</text>
+<rect id="大淀町" x="290" y="750" width="240" height="75" class="box" fill="#87cefa"/>
+<text x="410" y="787.5" text-anchor="middle" dominant-baseline="middle">大淀町</text>
+<rect id="吉野町" x="530" y="675" width="240" height="150" class="box" fill="#87cefa"/>
+<text x="650" y="750" text-anchor="middle" dominant-baseline="middle">吉野町</text>
+<rect id="東吉野村" x="770" y="675" width="240" height="150" class="box" fill="#90ee90"/>
+<text x="890" y="750" text-anchor="middle" dominant-baseline="middle">東吉野村</text>
+<rect id="曽爾村" x="1010" y="675" width="240" height="75" class="box" fill="#90ee90"/>
+<text x="1130" y="712.5" text-anchor="middle" dominant-baseline="middle">曽爾村</text>
+<rect id="御杖村" x="1010" y="750" width="240" height="75" class="box" fill="#90ee90"/>
+<text x="1130" y="787.5" text-anchor="middle" dominant-baseline="middle">御杖村</text>
+
+<!-- 6段目 -->
+<rect id="五條市" x="50" y="825" width="300" height="150" class="box" fill="#ffb6c1"/>
+<text x="200" y="900" text-anchor="middle" dominant-baseline="middle">五條市</text>
+<rect id="下市町" x="350" y="825" width="300" height="150" class="box" fill="#87cefa"/>
+<text x="500" y="900" text-anchor="middle" dominant-baseline="middle">下市町</text>
+<rect id="黒滝村" x="650" y="825" width="300" height="150" class="box" fill="#90ee90"/>
+<text x="800" y="900" text-anchor="middle" dominant-baseline="middle">黒滝村</text>
+<rect id="川上村" x="950" y="825" width="300" height="150" class="box" fill="#90ee90"/>
+<text x="1100" y="900" text-anchor="middle" dominant-baseline="middle">川上村</text>
+
+<!-- 7段目 -->
+<rect id="野迫川村" x="50" y="975" width="400" height="150" class="box" fill="#90ee90"/>
+<text x="250" y="1050" text-anchor="middle" dominant-baseline="middle">野迫川村</text>
+<rect id="天川村" x="450" y="975" width="400" height="150" class="box" fill="#90ee90"/>
+<text x="650" y="1050" text-anchor="middle" dominant-baseline="middle">天川村</text>
+<rect id="上北山村" x="850" y="975" width="400" height="150" class="box" fill="#90ee90"/>
+<text x="1050" y="1050" text-anchor="middle" dominant-baseline="middle">上北山村</text>
+
+<!-- 8段目 -->
+<rect id="十津川村" x="50" y="1125" width="600" height="150" class="box" fill="#90ee90"/>
+<text x="350" y="1200" text-anchor="middle" dominant-baseline="middle">十津川村</text>
+<rect id="下北山村" x="650" y="1125" width="600" height="150" class="box" fill="#90ee90"/>
+<text x="950" y="1200" text-anchor="middle" dominant-baseline="middle">下北山村</text>
+
+<rect class="hover-border" fill="none" stroke="#ff0000" stroke-width="4" visibility="hidden"/>
+
+</svg>
+
+<div id="chart-container">
+  <div id="chart-title"></div>
+  <canvas id="chart"></canvas>
+  <div id="total-label"></div>
+</div>
+
+</div>
+
+<!-- ▼ 下段ランキング -->
+<div id="rankingSection">
+  <h2 style="text-align:center; margin-top:20px;">市町村 優先調達実績一覧</h2>
+  <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
+</div>
+
+<script src="main.js"></script>
+
+</body>
+</html>
