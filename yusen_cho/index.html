@@ -233,10 +233,17 @@ text { font-size:32px; pointer-events:none; }
 
 </div>
 
+
+<label style="display:block; margin:8px 0;">
+  <input type="checkbox" id="filter-has-data" checked>
+  情報の存在する地域のみ表示
+</label>
+
+
 <!-- ▼ 下段ランキング -->
 <div id="rankingSection">
   <h2 style="text-align:center; margin-top:20px;">市町村 優先調達実績一覧</h2>
-  <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
+  <canvas id="rankingChart" style="width:100%; height:400px; padding-bottom: 40px;"></canvas>
 </div>
 
 <script src="main.js"></script>

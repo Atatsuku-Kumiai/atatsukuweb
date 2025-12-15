@@ -30,9 +30,9 @@ Papa.parse('data/nara_purchases.csv', {
     const ctxRanking = document.getElementById('rankingChart').getContext('2d');
 
     // ▼ 市町村数に応じて高さを調整（1行あたり px × 件数）
-    const rowHeight = 30;             // 行の高さ調整したければここを変える
-    const chartHeight = rankingData.length * rowHeight;
-    document.getElementById('rankingChart').height = chartHeight; 
+     //const rowHeight = 30;             // 行の高さ調整したければここを変える
+     //const chartHeight = rankingData.length * rowHeight;
+     //document.getElementById('rankingChart').height = chartHeight; 
     // ↑ これによりすべて表示可能に
 
     rankingChart = new Chart(ctxRanking, {   // ★ここだけ変更！
@@ -98,6 +98,8 @@ Papa.parse('data/nara_purchases.csv', {
       plugins:[ChartDataLabels]
     });
     // ▲▲▲ ここまで ▲▲▲
+  applyMunicipalityFilter();
+  updateRankingChart();
   }
 });
 
@@ -279,3 +281,103 @@ function handleResize() {
   chart.update();
 }
 
+
+//雑に追加
+
+//データの有無の判定
+function hasMunicipalityData(data) {
+  if (!data) return false;
+  const goodsInvalid =
+    data.goods == null || data.goods === "" || isNaN(data.goods);
+  const servicesInvalid =
+    data.services == null || data.services === "" || isNaN(data.services);
+  return !(goodsInvalid && servicesInvalid);
+}
+
+//データ不明の市町村をグレーアウトさせたりする
+//グレーアウト時にクリックイベントを無効化する必要はないかもしれない
+function applyMunicipalityFilter() {
+  const onlyHasData =
+    document.getElementById('filter-has-data').checked;
+
+  document.querySelectorAll('.box').forEach(rect => {
+    const name = rect.id;
+    const data = municipalityData[name];
+    const hasData = hasMunicipalityData(data);
+
+    if (onlyHasData && !hasData) {
+      rect.style.fill = '#ccc';        // グレーアウト
+      rect.style.pointerEvents = 'none'; // クリック不可
+      rect.style.opacity = '0.6';
+    } else {
+      rect.style.fill = '';            // 元に戻す
+      rect.style.pointerEvents = '';
+      rect.style.opacity = '';
+    }
+  });
+}
+
+//ランキング生成
+function buildRankingData() {
+  const onlyHasData =
+    document.getElementById('filter-has-data').checked;
+
+  const mapOrder = Array.from(
+    document.querySelectorAll('.box')
+  )
+  .filter(e => e.style.display !== 'none')
+  .map(e => e.id);
+
+  return mapOrder
+    .filter(name => municipalityData[name])
+    .filter(name => {
+      if (!onlyHasData) return true;
+      return hasMunicipalityData(municipalityData[name]);
+    })
+    .map(name => ({
+      name,
+      total:
+        (municipalityData[name].goods || 0) +
+        (municipalityData[name].services || 0)
+    }));
+}
+
+//データ不明区域を省く処理
+function updateRankingChart() {
+  const rankingData = buildRankingData();
+
+  rankingChart.data.labels = rankingData.map(d => d.name);
+  rankingChart.data.datasets[0].data =
+    rankingData.map(d => d.total);
+
+  const rowHeight = 30;
+  const minHeight = 400;
+
+  const height = Math.max(
+    rankingData.length * rowHeight ,
+    minHeight
+  );
+
+  const canvas = document.getElementById('rankingChart');
+  canvas.height = height;
+
+  //リサイズをかけておかないと全部の区域を表示する際に各項目の文字がつぶれる。おそらくサイズを自動計算しているために生じているものだが、ちゃんと調査をしていない
+  rankingChart.resize();  
+  rankingChart.update();
+}
+
+
+document
+  .getElementById('filter-has-data')
+  .addEventListener('change', () => {
+
+    applyMunicipalityFilter();
+    updateRankingChart();
+
+    // 赤枠を消す（非表示市町村対策）
+    hoverRect.style.display = 'none';
+
+    // 詳細グラフ初期化（任意）
+    chart.data.datasets[0].data = [0, 0];
+    chart.update();
+  });
