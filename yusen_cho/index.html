@@ -9,8 +9,57 @@
 <style>
 html, body { margin:0; padding:0; height:100%; overflow-y:auto; font-family:sans-serif; }
 
+#yusen .yusen-body {
+  max-width: 900px;   /* 読みやすい最大幅 */
+  width: 80%;
+  margin: 0 auto;
+}
+
+.page-title {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.note-link {
+  display: block;         /* 改行 */
+  text-align: right;      /* h1文字の右端基準 */
+  font-size: 0.9em;
+  margin-top: 4px;
+  text-decoration: none;
+}
+
+.note-link a {
+  text-decoration: none;      /* 通常は下線なし */
+}
+
+.note-link a:hover {
+  text-decoration: underline; /* ホバー時のみ下線 */
+}
+
+.title-wrap {
+  width: 80%;
+  margin: 0 auto;        /* 中央寄せ */
+  text-align: center;    /* 中身中央寄せ */
+}
+
+.title-inner {
+  display: inline-block;     /* ← 基準はこの箱 */
+  text-align: left;          /* 中身は左基準 */
+}
+
+#page-footer {
+  margin-top: 80px;      /* 本文との間隔 */
+  padding: 40px 0;
+  text-align: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
 /* 画面上部タイトル */
-h1{text-align:center;margin:10px 0;}
+h1{margin:10px 0;}
+
+h2{text-align:center; margin-top:80px;}
 
 /* 上段（マップ＋右チャート）ラップ */
 #topArea{
@@ -106,9 +155,18 @@ text { font-size:32px; pointer-events:none; }
 </head>
 
 <body>
-<h1 style="text-align:center; margin-top:20px;">
-  令和6年度 奈良県内市町村優先調達実績
-</h1>
+<div class="title-wrap">
+  <div class="title-inner">
+    <h1 id="top" class="page-title">
+      令和6年度 奈良県内市町村優先調達実績
+    </h1>
+
+    <p class="note-link">
+      <a href="#yusen">（※優先調達とは）</a>
+    </p>
+  </div> 
+</div>  
+
 <p style="text-align:center; margin-top:20px;">※「県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
 
 <!-- ▼ 上段：横並び -->
@@ -235,11 +293,46 @@ text { font-size:32px; pointer-events:none; }
 
 <!-- ▼ 下段ランキング -->
 <div id="rankingSection">
-  <h2 style="text-align:center; margin-top:20px;">市町村 優先調達実績一覧</h2>
+  <h2>市町村 優先調達実績一覧</h2>
   <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
 </div>
 
 <script src="main.js"></script>
+
+<section id="yusen">
+  <h2>優先調達とは</h2>
+
+  <div class="yusen-body">
+    <p>
+      「優先調達」とは、日本では主に「国等による障害者就労施設等からの物品等の調達の推進等に関する法律（障害者優先調達推進法）」に基づく制度を指します。
+    </p>
+
+    <p>
+      この法律の目的は、国や地方公共団体などの公的機関が物品やサービスを調達する際、障害者就労施設や在宅就業障害者等から優先的・積極的に購入することで、そこで働く障害のある方々の経済的な自立を促進することにあります。
+    </p>
+
+    <p>具体的には、以下のような取り組みが行われています。</p>
+
+    <ul>
+      <li>基本方針の策定（国）</li>
+      <li>調達方針の策定（官公庁・独立行政法人等）</li>
+      <li>方針に即した調達実施（官公庁等が発注、障害者施設等が受注し、物品・役務を提供）</li>
+      <li>調達実績の公表（各機関が年度ごとに調達実績を取りまとめ、公表する）</li>
+    </ul>
+
+    <p>
+      この制度により、障害者就労施設等の受注機会が拡大され、障害者の雇用促進や福祉的就労の支援につながっています。
+    </p>
+
+    <p class="note-link">
+    <a href="#top">▲ ページ上部へ戻る</a>
+    </p>
+  </div>
+</section>
+
+<footer id="page-footer">
+  <p>© 2025 あたつくIT部会</p>
+</footer>
 
 </body>
 </html>
