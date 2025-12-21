@@ -111,6 +111,22 @@ text { font-size:32px; pointer-events:none; }
 </h1>
 <p style="text-align:center; margin-top:20px;">※「県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
 
+<fieldset>
+  <legend>地図表示</legend>
+  <label>
+    <input type="radio" name="map-mode" value="normal" checked>
+    通常
+  </label>
+  <label>
+    <input type="radio" name="map-mode" value="filter">
+    データ有無
+  </label>
+  <label>
+    <input type="radio" name="map-mode" value="heatmap">
+    ヒートマップ
+  </label>
+</fieldset>
+
 <!-- ▼ 上段：横並び -->
 <div id="topArea">
 <svg id="map" viewBox="0 0 1400 1475" xmlns="http://www.w3.org/2000/svg">
@@ -234,10 +250,7 @@ text { font-size:32px; pointer-events:none; }
 </div>
 
 
-<label style="display:block; margin:8px 0;">
-  <input type="checkbox" id="filter-has-data" checked>
-  情報の存在する地域のみ表示
-</label>
+
 
 
 <!-- ▼ 下段ランキング -->

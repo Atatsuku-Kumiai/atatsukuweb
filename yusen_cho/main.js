@@ -1,5 +1,9 @@
 let rankingChart;   // ★ファイル先頭のほう（Papa.parseより上でも下でもOK）
 let municipalityData = {};
+
+let currentMapMode = 'normal';  //市町村の色分け制御変数
+// 'nomal'|'filter' | 'heatmap'
+
 Papa.parse('data/nara_purchases.csv', {
   download: true,
   header: true,
@@ -98,8 +102,10 @@ Papa.parse('data/nara_purchases.csv', {
       plugins:[ChartDataLabels]
     });
     // ▲▲▲ ここまで ▲▲▲
-  applyMunicipalityFilter();
-  updateRankingChart();
+  loadMunicipalityData(results.data);
+  initRankingChart();
+  currentMapMode = 'normal';
+  updateMapView(); 
   }
 });
 
@@ -244,11 +250,6 @@ if(data.goods == null && data.services == null){
   document.getElementById('total-label').innerText = 'データ不明';
 } else {
   //今のまま
-}// グラフ更新 の直後あたりに if追加（※任意）
-if(data.goods == null && data.services == null){
-  document.getElementById('total-label').innerText = 'データ不明';
-} else {
-  //今のまま
 }
 
   });
@@ -257,7 +258,7 @@ if(data.goods == null && data.services == null){
 function handleResize() {
   if (!chart) return; // ← 安全チェック（重要）
 
-  const scale = window.innerWidth / 1400;  // ★ 
+  const scale = Math.min(Math.max(window.innerWidth / 1400, 0.8), 1.3);  // ★ 
 
   /* resizeMap(); // マップのリサイズ */
 
@@ -294,44 +295,58 @@ function hasMunicipalityData(data) {
   return !(goodsInvalid && servicesInvalid);
 }
 
+function resetMapStyle() {
+  currentMapMode = 'normal';
+
+  document.querySelectorAll('.box').forEach(rect => {
+    rect.style.fill = '';
+    rect.style.opacity = '';
+    rect.style.pointerEvents = '';
+  });
+}
+
+function updateMapView() {
+  if (currentMapMode === 'filter') {
+    applyMunicipalityFilter();
+  } else if (currentMapMode === 'heatmap') {
+    applyHeatmap();
+  } else {
+    resetMapStyle();
+  }
+}
+
+
 //データ不明の市町村をグレーアウトさせたりする
 //グレーアウト時にクリックイベントを無効化する必要はないかもしれない
 function applyMunicipalityFilter() {
-  const onlyHasData =
-    document.getElementById('filter-has-data').checked;
-
   document.querySelectorAll('.box').forEach(rect => {
     const name = rect.id;
     const data = municipalityData[name];
     const hasData = hasMunicipalityData(data);
 
-    if (onlyHasData && !hasData) {
-      rect.style.fill = '#ccc';        // グレーアウト
-      rect.style.pointerEvents = 'none'; // クリック不可
+    if (!hasData) {
+      rect.style.fill = '#ccc';
       rect.style.opacity = '0.6';
+      rect.style.pointerEvents = 'none';
     } else {
-      rect.style.fill = '';            // 元に戻す
-      rect.style.pointerEvents = '';
+      rect.style.fill = '';
       rect.style.opacity = '';
+      rect.style.pointerEvents = '';
     }
   });
 }
 
+
 //ランキング生成
 function buildRankingData() {
-  const onlyHasData =
-    document.getElementById('filter-has-data').checked;
-
   const mapOrder = Array.from(
     document.querySelectorAll('.box')
-  )
-  .filter(e => e.style.display !== 'none')
-  .map(e => e.id);
+  ).map(e => e.id);
 
   return mapOrder
     .filter(name => municipalityData[name])
     .filter(name => {
-      if (!onlyHasData) return true;
+      if (currentMapMode !== 'filter') return true;
       return hasMunicipalityData(municipalityData[name]);
     })
     .map(name => ({
@@ -341,6 +356,7 @@ function buildRankingData() {
         (municipalityData[name].services || 0)
     }));
 }
+
 
 //データ不明区域を省く処理
 function updateRankingChart() {
@@ -366,18 +382,64 @@ function updateRankingChart() {
   rankingChart.update();
 }
 
+function getHeatColor(value, min, max) {
+  if (max === min) return '#bbdefb'; // 全部同じ値のとき
+  const ratio = (value - min) / (max - min);
+
+  // 青系グラデーション
+  const start = { r: 253, g: 231, b: 227 }; // #e3f2fd
+  const end   = { r: 226,  g: 51, b: 50 }; // #1e88e5
+
+  const r = Math.round(start.r + ratio * (end.r - start.r));
+  const g = Math.round(start.g + ratio * (end.g - start.g));
+  const b = Math.round(start.b + ratio * (end.b - start.b));
+
+  return `rgb(${r},${g},${b})`;
+}
+
+function getTotalsForHeatmap() {
+  return Object.values(municipalityData)
+    .filter(data => hasMunicipalityData(data))
+    .map(data => (data.goods || 0) + (data.services || 0));
+}
+
+function applyHeatmap() {
+  if (currentMapMode === 'filter') return;
+  currentMapMode = 'heatmap';
+  const totals = getTotalsForHeatmap();
+  const min = Math.min(...totals);
+  const max = Math.max(...totals);
+
+  document.querySelectorAll('.box').forEach(rect => {
+    const name = rect.id;
+    const data = municipalityData[name];
+
+    // データなし → グレー
+    if (!hasMunicipalityData(data)) {
+      rect.style.fill = '#ccc';
+      rect.style.opacity = '0.6';
+      return;
+    }
+
+    const total = (data.goods || 0) + (data.services || 0);
+    const color = getHeatColor(total, min, max);
+
+    rect.style.fill = color;
+    rect.style.opacity = '1';
+  });
+}
 
 document
-  .getElementById('filter-has-data')
-  .addEventListener('change', () => {
+  .querySelectorAll('input[name="map-mode"]')
+  .forEach(radio => {
+    radio.addEventListener('change', e => {
+      if (!e.target.checked) return;
 
-    applyMunicipalityFilter();
-    updateRankingChart();
+      currentMapMode = e.target.value;
 
-    // 赤枠を消す（非表示市町村対策）
-    hoverRect.style.display = 'none';
+      updateMapView();
+      updateRankingChart();
 
-    // 詳細グラフ初期化（任意）
-    chart.data.datasets[0].data = [0, 0];
-    chart.update();
+      hoverRect.style.display = 'none';
+    });
   });
