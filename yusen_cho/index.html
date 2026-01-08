@@ -151,6 +151,86 @@ text { font-size:32px; pointer-events:none; }
   margin: 0 auto;          /* 中央寄せ */
   display: block;
 }
+
+.rank-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rank-btn {
+  padding: 6px 12px;
+  margin-right: 6px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.rank-btn.active {
+  background: #696969;
+  color: #fff;
+  border-color: #696969;
+  /* font-weight: bold; */ 
+}
+
+/* ===== データ出典 ===== */
+.data-source {
+  max-width: 900px;          /* 本文・グラフ幅に合わせる */
+  width: 80%;
+  margin: 80px auto 40px;    /* 上は余白多め、下はフッター手前 */
+  padding-top: 24px;
+  /* border-top: 1px solid #ddd; */   /* 上線 */
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.data-source h3 {
+  text-align: left;       
+  font-size: 1rem;
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+
+.source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.source-list li {
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.source-org {
+  font-weight: 600;
+}
+
+.source-title {
+  margin-left: 0.3em;
+}
+
+.source-list a {
+  font-size: 0.85em;
+  color: #0066cc;
+  word-break: break-all;
+}
+
+.source-date {
+  font-size: 0.8em;
+  color: #777;
+  margin-left: 0.3em;
+}
+
+.source-note {
+  margin-top: 16px;
+  font-size: 0.85em;
+  color: #666;
+  line-height: 1.6;
+}
+
 </style>
 </head>
 
@@ -167,7 +247,7 @@ text { font-size:32px; pointer-events:none; }
   </div> 
 </div>  
 
-<p style="text-align:center; margin-top:20px;">※「県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
+<p style="text-align:center; margin-top:20px;">※「奈良県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
 
 <!-- ▼ 上段：横並び -->
 <div id="topArea">
@@ -294,6 +374,13 @@ text { font-size:32px; pointer-events:none; }
 <!-- ▼ 下段ランキング -->
 <div id="rankingSection">
   <h2>市町村 優先調達実績一覧</h2>
+
+  <div class="rank-buttons">
+  <button id="btn-map" class="rank-btn active">地図順</button>
+  <button id="btn-total" class="rank-btn">合計額順</button>
+  <button id="btn-percapita" class="rank-btn">人口1人あたり順</button>
+  </div>
+
   <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
 </div>
 
@@ -330,8 +417,47 @@ text { font-size:32px; pointer-events:none; }
   </div>
 </section>
 
+<!-- ▼ データ出典 -->
+<section class="data-source">
+  <h3>データ出典</h3>
+
+  <ul class="source-list">
+    <li>
+      <span class="source-org">厚生労働省</span>
+      <span class="source-title">「令和６年度　市町村における障害者就労施設等からの物品等の調達実績」</span><br>
+      <a href="https://www.mhlw.go.jp/content/12200000/001620752.pdf" target="_blank" rel="noopener">
+        https://www.mhlw.go.jp/content/12200000/001620752.pdf
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+
+    <li>
+      <span class="source-org">大和郡山市</span>
+      <span class="source-title">「令和6年度障害者就労施設等からの調達実績」</span><br>
+      <a href="https://www.city.yamatokoriyama.lg.jp/material/files/group/60/R6_yuusenn_jisseki.pdf" target="_blank" rel="noopener">
+        https://www.city.yamatokoriyama.lg.jp/material/files/group/60/R6_yuusenn_jisseki.pdf
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+ 
+    <li>
+      <span class="source-org">奈良県</span>
+      <span class="source-title">「市町村別推計人口（毎月1日現在）」（令和6年4月）</span><br>
+      <a href="https://www.pref.nara.jp/secure/221749/r6_toukeihyou02.xlsx" target="_blank" rel="noopener">
+        https://www.pref.nara.jp/secure/221749/r6_toukeihyou02.xlsx
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+  </ul>
+
+  <p class="source-note">
+    ※本ページのグラフ・表は、上記データをもとに独自に作成・加工したものです。<br>
+    ※大和郡山市のみ、厚労省ではなく市の調達実績データを参照しています。
+  </p>
+</section>
+
 <footer id="page-footer">
-  <p>© 2025 あたつくIT部会</p>
+  <p>© 2025-2026 あたつくIT部会</p>
 </footer>
 
 </body>
