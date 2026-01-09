@@ -9,8 +9,57 @@
 <style>
 html, body { margin:0; padding:0; height:100%; overflow-y:auto; font-family:sans-serif; }
 
+#yusen .yusen-body {
+  max-width: 900px;   /* 読みやすい最大幅 */
+  width: 80%;
+  margin: 0 auto;
+}
+
+.page-title {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.note-link {
+  display: block;         /* 改行 */
+  text-align: right;      /* h1文字の右端基準 */
+  font-size: 0.9em;
+  margin-top: 4px;
+  text-decoration: none;
+}
+
+.note-link a {
+  text-decoration: none;      /* 通常は下線なし */
+}
+
+.note-link a:hover {
+  text-decoration: underline; /* ホバー時のみ下線 */
+}
+
+.title-wrap {
+  width: 80%;
+  margin: 0 auto;        /* 中央寄せ */
+  text-align: center;    /* 中身中央寄せ */
+}
+
+.title-inner {
+  display: inline-block;     /* ← 基準はこの箱 */
+  text-align: left;          /* 中身は左基準 */
+}
+
+#page-footer {
+  margin-top: 80px;      /* 本文との間隔 */
+  padding: 40px 0;
+  text-align: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
 /* 画面上部タイトル */
-h1{text-align:center;margin:10px 0;}
+h1{margin:10px 0;}
+
+h2{text-align:center; margin-top:80px;}
 
 /* 上段（マップ＋右チャート）ラップ */
 #topArea{
@@ -31,7 +80,7 @@ h1{text-align:center;margin:10px 0;}
   /* 追加 ↓ */
   max-height: 90vh;   /* 画面の高さ以内に収める */
   object-fit: cover;
-  display:block /* 追加！これが重要 */
+  display:block; /* 追加！これが重要 */
 }
 
 /* 右側：市町村クリック時の棒グラフ */
@@ -44,7 +93,10 @@ h1{text-align:center;margin:10px 0;}
   height:65vh;   /* ← これを追加（例：高さを画面の70%） */
 }
 
-text { font-size:32px; pointer-events:none; }
+svg text { 
+  font-size:32px; 
+  pointer-events:none; 
+}
 .box { 
   stroke:#555; 
   stroke-width:2; 
@@ -102,14 +154,103 @@ text { font-size:32px; pointer-events:none; }
   margin: 0 auto;          /* 中央寄せ */
   display: block;
 }
+
+.rank-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rank-btn {
+  padding: 6px 12px;
+  margin-right: 6px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.rank-btn.active {
+  background: #696969;
+  color: #fff;
+  border-color: #696969;
+  /* font-weight: bold; */ 
+}
+
+/* ===== データ出典 ===== */
+.data-source {
+  max-width: 900px;          /* 本文・グラフ幅に合わせる */
+  width: 80%;
+  margin: 80px auto 40px;    /* 上は余白多め、下はフッター手前 */
+  padding-top: 24px;
+  /* border-top: 1px solid #ddd; */   /* 上線 */
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.data-source h3 {
+  text-align: left;       
+  font-size: 1rem;
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+
+.source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.source-list li {
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.source-org {
+  font-weight: 600;
+}
+
+.source-title {
+  margin-left: 0.3em;
+}
+
+.source-list a {
+  font-size: 0.85em;
+  color: #0066cc;
+  word-break: break-all;
+}
+
+.source-date {
+  font-size: 0.8em;
+  color: #777;
+  margin-left: 0.3em;
+}
+
+.source-note {
+  margin-top: 16px;
+  font-size: 0.85em;
+  color: #666;
+  line-height: 1.6;
+}
+
 </style>
 </head>
 
 <body>
-<h1 style="text-align:center; margin-top:20px;">
-  令和6年度 奈良県内市町村優先調達実績
-</h1>
-<p style="text-align:center; margin-top:20px;">※「県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
+<div class="title-wrap">
+  <div class="title-inner">
+    <h1 id="top" class="page-title">
+      令和6年度 奈良県内市町村優先調達実績
+    </h1>
+
+    <p class="note-link">
+      <a href="#yusen">（※優先調達とは）</a>
+    </p>
+  </div> 
+</div>  
+
+<p style="text-align:center; margin-top:20px;">※「奈良県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
 
 <!-- ▼ 上段：横並び -->
 <div id="topArea">
@@ -235,11 +376,101 @@ text { font-size:32px; pointer-events:none; }
 
 <!-- ▼ 下段ランキング -->
 <div id="rankingSection">
-  <h2 style="text-align:center; margin-top:20px;">市町村 優先調達実績一覧</h2>
-  <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
+  <h2>市町村 優先調達実績一覧</h2>
+
+  <div class="rank-buttons">
+  <button id="btn-map" class="rank-btn active">地図順</button>
+  <button id="btn-total" class="rank-btn">合計額順</button>
+  <button id="btn-percapita" class="rank-btn">人口1人あたり順</button>
+  </div>
+
+  <canvas id="rankingChart"></canvas>
 </div>
 
 <script src="main.js"></script>
+
+<section id="yusen">
+  <h2>優先調達とは</h2>
+
+  <div class="yusen-body">
+    <p>
+      「優先調達」とは、日本では主に「国等による障害者就労施設等からの物品等の調達の推進等に関する法律（障害者優先調達推進法）」に基づく制度を指します。
+    </p>
+
+    <p>
+      この法律の目的は、国や地方公共団体などの公的機関が物品やサービスを調達する際、障害者就労施設や在宅就業障害者等から優先的・積極的に購入することで、そこで働く障害のある方々の経済的な自立を促進することにあります。
+    </p>
+
+    <p>具体的には、以下のような取り組みが行われています。</p>
+
+    <ul>
+      <li>基本方針の策定（国）</li>
+      <li>調達方針の策定（官公庁・独立行政法人等）</li>
+      <li>方針に即した調達実施（官公庁等が発注、障害者施設等が受注し、物品・役務を提供）</li>
+      <li>調達実績の公表（各機関が年度ごとに調達実績を取りまとめ、公表する）</li>
+    </ul>
+
+    <p>
+      この制度により、障害者就労施設等の受注機会が拡大され、障害者の雇用促進や福祉的就労の支援につながっています。
+    </p>
+
+    <p class="note-link">
+    <a href="#top">▲ ページ上部へ戻る</a>
+    </p>
+  </div>
+</section>
+
+<!-- ▼ データ出典 -->
+<section class="data-source">
+  <h3>データ出典</h3>
+
+  <ul class="source-list">
+    <li>
+      <span class="source-org">厚生労働省</span>
+      <span class="source-title">「令和６年度　市町村における障害者就労施設等からの物品等の調達実績」</span><br>
+      <a href="https://www.mhlw.go.jp/content/12200000/001620752.pdf#page=43" target="_blank" rel="noopener">
+        https://www.mhlw.go.jp/content/12200000/001620752.pdf
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+
+    <li>
+      <span class="source-org">大和郡山市</span>
+      <span class="source-title">「令和6年度障害者就労施設等からの調達実績」</span><br>
+      <a href="https://www.city.yamatokoriyama.lg.jp/material/files/group/60/R6_yuusenn_jisseki.pdf" target="_blank" rel="noopener">
+        https://www.city.yamatokoriyama.lg.jp/material/files/group/60/R6_yuusenn_jisseki.pdf
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+    
+    <li>
+      <span class="source-org">奈良県</span>
+      <span class="source-title">「市町村別推計人口（毎月1日現在）」（令和6年4月）</span><br>
+      <a href="https://www.pref.nara.jp/secure/221749/r6_toukeihyou02.xlsx" target="_blank" rel="noopener">
+        https://www.pref.nara.jp/secure/221749/r6_toukeihyou02.xlsx
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+
+    <li>
+      <span class="source-org">奈良県</span>
+      <span class="source-title">「令和６年度調達実績（種別）」</span><br>
+      <a href="https://www.pref.nara.jp/secure/210815/R6jisseki.pdf" target="_blank" rel="noopener">
+        https://www.pref.nara.jp/secure/210815/R6jisseki.pdf
+      </a>
+      <span class="source-date">（2025年12月取得）</span>
+    </li>
+  </ul>
+
+  <p class="source-note">
+    ※本ページのグラフ・表は、上記データをもとに独自に作成・加工したものです。<br>
+    ※大和郡山市のみ、厚労省ではなく市の調達実績データを参照しています。
+  </p>
+</section>
+
+<footer id="page-footer">
+  <p>© 2025-2026 あたつくIT部会</p>
+</footer>
 
 </body>
 </html>
