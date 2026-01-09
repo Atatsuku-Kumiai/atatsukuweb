@@ -80,7 +80,7 @@ h2{text-align:center; margin-top:80px;}
   /* 追加 ↓ */
   max-height: 90vh;   /* 画面の高さ以内に収める */
   object-fit: cover;
-  display:block /* 追加！これが重要 */
+  display:block; /* 追加！これが重要 */
 }
 
 /* 右側：市町村クリック時の棒グラフ */
@@ -93,7 +93,10 @@ h2{text-align:center; margin-top:80px;}
   height:65vh;   /* ← これを追加（例：高さを画面の70%） */
 }
 
-text { font-size:32px; pointer-events:none; }
+svg text { 
+  font-size:32px; 
+  pointer-events:none; 
+}
 .box { 
   stroke:#555; 
   stroke-width:2; 
@@ -381,7 +384,7 @@ text { font-size:32px; pointer-events:none; }
   <button id="btn-percapita" class="rank-btn">人口1人あたり順</button>
   </div>
 
-  <canvas id="rankingChart" style="width:100%; height:400px;"></canvas>
+  <canvas id="rankingChart"></canvas>
 </div>
 
 <script src="main.js"></script>

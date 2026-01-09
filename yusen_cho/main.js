@@ -40,7 +40,7 @@ Papa.parse('data/nara_purchases.csv', {
 
     // ▼▼▼ データ読込完了後にランキングチャート生成 ▼▼▼
     
-    // ▼▼▼ ここから マップ順に並べ替え ▼▼▼
+    // マップ表示順（将来拡張用）
         const mapOrder = Array.from(document.querySelectorAll('.box')).map(e => e.id);
 
     // municipalityData をマップ順で並べた配列へ変換
@@ -191,7 +191,8 @@ function buildRankingData(mode) {
 
 //ランキングチャート更新関数
 function updateRankingChart(mode) {
-
+  if (!rankingChart) return; // ← 追加 安全チェック
+  
   // ▼▼▼ 追加：ボタンの active 切り替え ▼▼▼
     document.querySelectorAll('.rank-btn').forEach(btn => {
       btn.classList.remove('active');
@@ -219,6 +220,14 @@ function updateRankingChart(mode) {
     const values = rankingData
       .map(d => d.value)
       .filter(v => v != null && !Number.isNaN(v));
+
+    if (values.length === 0) {
+      rankingChart.options.scales.x.max = 1;
+      rankingChart.options.scales.x.ticks.stepSize = 1;
+      rankingChart.options.scales.x.ticks.callback = () => '';
+      rankingChart.update();
+      return;
+    }
 
     const maxValue = Math.max(...values);
 
@@ -258,10 +267,8 @@ function updateRankingChart(mode) {
       );
 
     // Y軸ラベル文字色
-    rankingChart.options.scales.y.ticks.color =
-      rankingChart.data.labels.map(label =>
-        label === selectedMunicipality ? 'red' : '#555'
-      );
+    rankingChart.options.scales.y.ticks.color = (ctx) =>
+      ctx.tick.label === selectedMunicipality ? 'red' : '#555';
 
     // 棒の数値（datalabels）の色
     rankingChart.options.plugins.datalabels.color = (ctx) => {
@@ -377,7 +384,14 @@ document.querySelectorAll('.box').forEach(rect => {
 
     // ▼ ▼ ここでリンク作成（URLは例。自由に変更OK） ▼ ▼
     const url = data.url || `pages/${name}.html`;  // URLが無い場合は詳細ページにも飛ばせる
-    document.getElementById('chart-title').innerHTML = `<a href="${url}" target="_blank">${name}</a>`;
+    const titleEl = document.getElementById('chart-title');
+      titleEl.textContent = '';
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.textContent = name;
+      titleEl.appendChild(a);
+
 
     // グラフ更新
     if (data.goods == null && data.services == null) {
@@ -429,10 +443,8 @@ document.querySelectorAll('.box').forEach(rect => {
     );
     
     // ラベル文字色変更
-    rankingChart.options.scales.y.ticks.color =
-    rankingChart.data.labels.map(label =>
-      label === name ? 'red' : '#555'   // 選択市は赤、それ以外はグレー
-    );
+    rankingChart.options.scales.y.ticks.color = (ctx) =>
+    ctx.tick.label === name ? 'red' : '#555';
 
     // 棒グラフ横の数字（datalabels）の色変更
     rankingChart.options.plugins.datalabels.color = (ctx) => {
@@ -462,7 +474,9 @@ function handleResize() {
   /* resizeMap(); // マップのリサイズ */
 
   // グラフのリサイズ
-  chart.resize(); 
+  if (rankingChart) {
+  rankingChart.resize();
+}
 
   // 文字サイズの調整
   // フォント設定が存在する場合だけ変更
