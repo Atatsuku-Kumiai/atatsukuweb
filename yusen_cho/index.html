@@ -118,14 +118,26 @@ text { font-size:32px; pointer-events:none; }
     通常
   </label>
   <label>
-    <input type="radio" name="map-mode" value="filter">
-    データ有無
-  </label>
-  <label>
     <input type="radio" name="map-mode" value="heatmap">
     ヒートマップ
   </label>
 </fieldset>
+
+<div class="map-value-selector">
+  <label>
+    <input type="radio" name="value-mode" value="total" checked>
+    総額
+  </label>
+  <label>
+    <input type="radio" name="value-mode" value="perCapita">
+    人口当たり
+  </label>
+  <label>
+    <input type="radio" name="value-mode" value="normalized">
+    正規化ヒートマップ
+  </label>
+</div>
+
 
 <!-- ▼ 上段：横並び -->
 <div id="topArea">
