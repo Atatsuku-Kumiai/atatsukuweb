@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/usr/local/bin/bash
+###!/bin/bash
+#
+#  Seploy Script for Sakura Rental Server using FreeBSD
+#
 echo "Start Deploy for Yusen-Chotatsu"
 date
 #
