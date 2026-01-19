@@ -1,0 +1,17 @@
+####
+#   .gitignore for Bousai Platform Project 
+####
+# EDITOR Setting(VScode Eclipse), etc.
+.vscode/
+.idea/
+.project/
+.classpath
+.settings
+*.code-workspace
+*~
+.#*
+*.swp
+
+# Mac DS_Store files　
+.DS_Store
+
