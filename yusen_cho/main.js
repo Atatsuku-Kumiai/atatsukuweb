@@ -3,6 +3,9 @@ let municipalityData = {};
 let rankingMode = 'map';  // 'map' または 'ranking'
 let selectedMunicipality = null;  // ← 地図で最後に選択した市町村
 
+let currentValueMode = 'total';   // total / perCapita
+let currentMapMode   = 'normal';  // normal / heatmap
+
 Papa.parse('data/nara_purchases.csv', {
   download: true,
   header: true,
@@ -31,11 +34,6 @@ Papa.parse('data/nara_purchases.csv', {
       
     url: row.url
     };
-    });
-
-
-    results.data.forEach(row => {
-    console.log(row.municipality, row.goods_amount, row.services_amount, row.total_amount);
     });
 
     // ▼▼▼ データ読込完了後にランキングチャート生成 ▼▼▼
@@ -195,23 +193,26 @@ function buildRankingData(mode) {
 //ランキングチャート更新関数
 function updateRankingChart(mode) {
   if (!rankingChart) return; // ← 追加 安全チェック
-  
+
   // ▼▼▼ 追加：ボタンの active 切り替え ▼▼▼
-    document.querySelectorAll('.rank-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
+  document.querySelectorAll('.rank-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
 
-    if (mode === 'map') {
-      document.getElementById('btn-map').classList.add('active');
-    } else if (mode === 'total') {
-      document.getElementById('btn-total').classList.add('active');
-    } else if (mode === 'perCapita') {
-      document.getElementById('btn-percapita').classList.add('active');
-    }
-    // ▲▲▲ 追加ここまで ▲▲▲
-
+  if (mode === 'map') {
+    document.getElementById('btn-map').classList.add('active');
+  } else if (mode === 'total') {
+    document.getElementById('btn-total').classList.add('active');
+  } else if (mode === 'perCapita') {
+    document.getElementById('btn-perCapita').classList.add('active');
+  }
+  // ▲▲▲ 追加ここまで ▲▲▲
+  
+  // ★ 追加：未指定なら現在の rankingMode を使う
+  if (!mode) {
+    mode = rankingMode;
+  }
   rankingMode = mode;
-
   const rankingData = buildRankingData(mode);
 
   rankingChart.data.labels = rankingData.map(d => d.name);
@@ -292,12 +293,13 @@ document.getElementById('btn-map')?.addEventListener('click', () => {
 });
 
 document.getElementById('btn-total')?.addEventListener('click', () => {
-  updateRankingChart('total');
+  onRankingModeChanged('total');
 });
 
-document.getElementById('btn-percapita')?.addEventListener('click', () => {
-  updateRankingChart('perCapita');
+document.getElementById('btn-perCapita')?.addEventListener('click', () => {
+  onRankingModeChanged('perCapita');
 });
+
 
 
 const ctx = document.getElementById('chart').getContext('2d');
@@ -411,37 +413,34 @@ document.querySelectorAll('.box').forEach(rect => {
 
 
     // グラフ更新
-    if (data.goods == null && data.services == null) {
-      // 両方不明 → 数値は出さず、ラベルはそのまま
+    const values = getChartValues(data);
+    const goods = values.goods;
+    const services = values.services;
+
+    // 両方 null → 不明
+    if (goods == null && services == null) {
       chart.data.datasets[0].data = [0, 0];
-      chart.data.labels = ['物品', '役務'];
     } else {
       chart.data.datasets[0].data = [
-        data.goods ?? 0,
-        data.services ?? 0
+        goods ?? 0,
+        services ?? 0
       ];
-      chart.data.labels = ['物品', '役務'];
     }
 
-    chart.options.plugins.title.text = name;
+    // ラベルは共通
+    chart.data.labels = ['物品', '役務'];
+
+    // タイトル
+    chart.options.plugins.title.text =
+      currentValueMode === 'perCapita'
+        ? `${name}（人口1人あたり）` //枕詞の修正検討
+        : name;
+
     chart.update();
 
 
     // ▼ ここに差し替え（他は変更不要）
-    let total;
-
-    // total_amount が無ければ不明扱い
-    const isUnknown =
-    data.total == null || data.total === "" || isNaN(data.total);
-
-    if(isUnknown){
-    total = 0;
-    document.getElementById('total-label').innerText = '合計: 0円（不明）';
-    }else{
-    total = data.total;
-    document.getElementById('total-label').innerText =
-    '合計: ' + total.toLocaleString() + '円（' + toJapaneseAmount(total) + '）';
-    }
+    updateTotalLabel(data);
 
 
     
@@ -517,82 +516,40 @@ function handleResize() {
 
 //雑に追加
 
-//空欄をnullにするやつ
-function toNumberOrNull(v) {
-  if (v === '' || v === null || v === undefined) return null;
-  const n = Number(v);
-  return Number.isNaN(n) ? null : n;
-}
+function onRankingModeChanged(mode) {
+  if (mode !== 'total' && mode !== 'perCapita') return;
 
-//マップ右側のグラフに使うデータの整形
-function getMunicipalityChartValues(data) {
-  if (!data) {
-    return { values: [0, 0], label: 'データ不明' };
+  currentValueMode = mode;
+
+  // ▼ ランキングチャート更新
+  updateRankingChart(mode);
+
+  // ▼ ヒートマップ基準ラジオを同期
+  syncHeatmapRadio(mode);
+
+  // ▼ ヒートマップ中なら色も更新
+  if (currentMapMode === 'heatmap') {
+    applyHeatmap();
   }
 
-  switch (currentValueMode) {
-    case 'total':
-      return {
-        values: [data.goods ?? 0, data.services ?? 0],
-        label: '金額（円）'
-      };
-
-    case 'perCapita':
-      if (!data.population || data.population <= 0) {
-        return { values: [0, 0], label: '人口不明' };
-      }
-      return {
-        values: [
-          (data.goods ?? 0) / data.population,
-          (data.services ?? 0) / data.population
-        ],
-        label: '人口当たり（円/人）'
-      };
-
-    case 'normalized':
-      const total = (data.goods ?? 0) + (data.services ?? 0);
-      if (total <= 0) {
-        return { values: [0, 0], label: '構成比' };
-      }
-      return {
-        values: [
-          (data.goods ?? 0) / total,
-          (data.services ?? 0) / total
-        ],
-        label: '構成比'
-      };
-
-    default:
-      return { values: [0, 0], label: 'データ不明' };
+  // ▼ 右側の市町村グラフ更新（選択中のみ）
+  if (selectedMunicipality) {
+    const rect = document.getElementById(selectedMunicipality);
+    if (rect) rect.dispatchEvent(new Event('click'));
   }
 }
 
+function syncHeatmapRadio(mode) {
+  const totalRadio = document.querySelector(
+    'input[name="value-mode"][value="total"]'
+  );
+  const perCapitaRadio = document.querySelector(
+    'input[name="value-mode"][value="perCapita"]'
+  );
 
-//データの有無の判定
-function hasMunicipalityData(data) {
-  if (!data) return false;
-
-  switch (currentValueMode) {
-    case 'total':
-      return data.total != null && !Number.isNaN(data.total)
-
-    case 'perCapita':
-      return (
-        data.total != null &&
-        !Number.isNaN(data.total) &&
-        data.population != null &&
-        !Number.isNaN(data.population) &&
-        data.population > 0
-      );
-
-    case 'normalized':
-      return data.total != null && !isNaN(data.total);
-
-    default:
-      return false;
-  }
+  if (totalRadio) totalRadio.checked = (mode === 'total');
+  if (perCapitaRadio) perCapitaRadio.checked = (mode === 'perCapita');
 }
-
 
 
 function resetMapStyle() {
@@ -612,8 +569,6 @@ function updateMapView() {
   }
 }
 
-
-
 //表示用数値の処理関数
 function getMunicipalityValue(data) {
   if (!data) return null;
@@ -628,30 +583,23 @@ function getMunicipalityValue(data) {
       }
       return data.total / data.population;
 
-    case 'normalized':
-      return data.total;
-
     default:
       return null;
   }
 }
 
-
-
 //データ不明の市町村をグレーアウトさせたりする
 //グレーアウト時にクリックイベントを無効化する必要はないかもしれない
 function applyHeatmap() {
   if (!municipalityData || Object.keys(municipalityData).length === 0) return;
-  
+
   currentMapMode = 'heatmap';
 
-  const values = Object.values(municipalityData)
-    .map(data => getMunicipalityValue(data))
-    .filter(v => v != null && typeof v === 'number');
-
+  const values = Object.keys(municipalityData)
+    .map(name => getMunicipalityValue(municipalityData[name]))
+    .filter(v => typeof v === 'number');
 
   if (values.length === 0) {
-    console.warn('Heatmap: 有効な値がありません');
     resetMapStyle();
     return;
   }
@@ -660,69 +608,83 @@ function applyHeatmap() {
   const max = Math.max(...values);
 
   document.querySelectorAll('.box').forEach(rect => {
-    const name = rect.id;
-    const data = municipalityData[name];
-    const value = getMunicipalityValue(data);
+    const d = municipalityData[rect.id];
+    const v = getMunicipalityValue(d);
 
-    if (value == null) {
+    if (v == null) {
       rect.style.fill = '#ccc';
-      rect.style.opacity = '0.6';
       return;
     }
 
-    rect.style.fill = getHeatColor(value, min, max);
-    rect.style.opacity = '1';
-    rect.style.pointerEvents = '';
+    rect.style.fill = getHeatColor(v, min, max);
   });
 }
 
+function getChartValues(data) {
+  if (!data) {
+    return { goods: null, services: null };
+  }
 
+  // 通常表示（合計額）
+  if (currentValueMode === 'total') {
+    return {
+      goods: data.goods,
+      services: data.services
+    };
+  }
 
-//ランキング生成
-function buildRankingData() {
-  const mapOrder = Array.from(
-    document.querySelectorAll('.box')
-  ).map(e => e.id);
+  // 人口1人あたり
+  if (currentValueMode === 'perCapita') {
+    if (!data.population || data.population === 0) {
+      return { goods: null, services: null };
+    }
 
-  return mapOrder
-    .filter(name => municipalityData[name])
-    .map(name => {
-      const data = municipalityData[name];
-      const value = getMunicipalityValue(data); // number | null
+    return {
+      goods: data.goods != null ? data.goods / data.population : null,
+      services: data.services != null ? data.services / data.population : null
+    };
+  }
 
-      return {
-        name,
-        value
-      };
-    });
+  return { goods: null, services: null };
 }
 
+function updateTotalLabel(data) {
+  const el = document.getElementById('total-label');
+  if (!el || !data) return;
 
+  // 合計金額が存在しない
+  if (data.total == null || isNaN(data.total)) {
+    el.innerText = 'データ不明';
+    return;
+  }
 
-function updateRankingChart() {
-  if (!rankingChart) return;
-  const rankingData = buildRankingData();
+  // 合計額表示
+  if (currentValueMode === 'total') {
+    el.innerText =
+      '合計: ' +
+      data.total.toLocaleString() +
+      '円（' + toJapaneseAmount(data.total) + '）';
+    return;
+  }
 
-  rankingChart.data.labels = rankingData.map(d => d.name);
-  rankingChart.data.datasets[0].data =
-    rankingData.map(d => d.value); 
+  // 人口1人あたり
+  if (currentValueMode === 'perCapita') {
+    if (!data.population || data.population <= 0) {
+      el.innerText = '人口不明';
+      return;
+    }
 
+    const perCapita = data.total / data.population;
 
+    el.innerText =
+      '人口1人あたり: ' +
+      Math.round(perCapita).toLocaleString() +
+      '円/人';
+    return;
+  }
 
-  const rowHeight = 30;
-  const minHeight = 400;
-
-  const height = Math.max(
-    rankingData.length * rowHeight ,
-    minHeight
-  );
-
-  const canvas = document.getElementById('rankingChart');
-  canvas.height = height;
-
-  //リサイズをかけておかないと全部の区域を表示する際に各項目の文字がつぶれる。おそらくサイズを自動計算しているために生じているものだが、ちゃんと調査をしていない
-  rankingChart.resize();  
-  rankingChart.update();
+  // fallback
+  el.innerText = '';
 }
 
 function getHeatColor(value, min, max) {
@@ -740,12 +702,6 @@ function getHeatColor(value, min, max) {
   return `rgb(${r},${g},${b})`;
 }
 
-function getTotalsForHeatmap() {
-  return Object.values(municipalityData)
-    .filter(data => hasMunicipalityData(data))
-    .map(data => data.total)
-}
-
 document
   .querySelectorAll('input[name="value-mode"]')
   .forEach(radio => {
@@ -758,7 +714,14 @@ document
         applyHeatmap();
       }
 
-      updateRankingChart();
+      updateRankingChart(
+        currentValueMode === 'perCapita' ? 'perCapita' : 'total'
+      );
+
+      if (selectedMunicipality) {
+        updateTotalLabel(municipalityData[selectedMunicipality]);
+      }
+      
       hoverRect.style.display = 'none';
     });
 });
@@ -776,4 +739,3 @@ document
       hoverRect.style.display = 'none';
     });
 });
-
