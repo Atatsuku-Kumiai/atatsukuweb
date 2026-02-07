@@ -338,7 +338,10 @@ const chart = new Chart(ctx, {
 
           return value.toLocaleString() + '円';
         },
-        font: { weight: 'bold' }
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
       },
       legend: { display: false }
     },
@@ -502,7 +505,7 @@ function handleResize() {
       chart.options.plugins.title.font.size = 18 * scale;
     }
     if (chart.options?.plugins?.datalabels?.font) {
-      chart.options.plugins.datalabels.font.size = 12 * scale;
+      chart.options.plugins.datalabels.font.size = 16 * scale;
     }
     if (chart.options?.scales?.y?.ticks?.font) {
       chart.options.scales.y.ticks.font.size = 12 * scale;

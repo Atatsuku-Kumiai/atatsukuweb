@@ -333,7 +333,10 @@ const chart = new Chart(ctx, {
 
           return value.toLocaleString() + '円';
         },
-        font: { weight: 'bold' }
+        font: {
+          size: 14,
+          weight: 'bold'
+        }
       },
       legend: { display: false }
     },
@@ -467,9 +470,7 @@ if(data.total == null || isNaN(data.total)){
 function handleResize() {
   if (!chart) return; // ← 安全チェック（重要）
 
-  const scale = window.innerWidth / 1400;  // ★ 
-
-
+  const scale = Math.min(window.innerWidth / 1400, 1);
 
   /* resizeMap(); // マップのリサイズ */
 
@@ -484,7 +485,7 @@ function handleResize() {
       chart.options.plugins.title.font.size = 18 * scale;
     }
     if (chart.options?.plugins?.datalabels?.font) {
-      chart.options.plugins.datalabels.font.size = 12 * scale;
+      chart.options.plugins.datalabels.font.size = 14 * scale;
     }
     if (chart.options?.scales?.y?.ticks?.font) {
       chart.options.scales.y.ticks.font.size = 12 * scale;
