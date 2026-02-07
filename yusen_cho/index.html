@@ -252,6 +252,34 @@ svg text {
 
 <p style="text-align:center; margin-top:20px;">※「奈良県」の優先調達実績は、物品676,350円、役務35,944,853円</p>  
 
+<fieldset>
+  <legend>地図表示</legend>
+  <label>
+    <input type="radio" name="map-mode" value="normal" checked>
+    通常
+  </label>
+  <label>
+    <input type="radio" name="map-mode" value="heatmap">
+    ヒートマップ
+  </label>
+</fieldset>
+
+<fieldset>
+  <legend>表示基準</legend>
+  <label>
+    <input type="radio" name="value-mode" value="total" checked>
+    合計額
+  </label>
+  <label>
+    <input type="radio" name="value-mode" value="perCapita">
+    人口1人あたり
+  </label>
+</fieldset>
+
+
+
+
+
 <!-- ▼ 上段：横並び -->
 <div id="topArea">
 <svg id="map" viewBox="0 0 1400 1475" xmlns="http://www.w3.org/2000/svg">
@@ -374,6 +402,10 @@ svg text {
 
 </div>
 
+
+
+
+
 <!-- ▼ 下段ランキング -->
 <div id="rankingSection">
   <h2>市町村 優先調達実績一覧</h2>
@@ -381,13 +413,13 @@ svg text {
   <div class="rank-buttons">
   <button id="btn-map" class="rank-btn active">地図順</button>
   <button id="btn-total" class="rank-btn">合計額順</button>
-  <button id="btn-percapita" class="rank-btn">人口1人あたり順</button>
+  <button id="btn-perCapita" class="rank-btn">人口1人あたり順</button>
   </div>
 
   <canvas id="rankingChart"></canvas>
 </div>
 
-<script src="js/main.js"></script>
+<script src="js/heatmap.js"></script>
 
 <section id="yusen">
   <h2>優先調達とは</h2>
