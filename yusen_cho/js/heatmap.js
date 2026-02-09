@@ -420,6 +420,19 @@ document.querySelectorAll('.box').forEach(rect => {
     const goods = values.goods;
     const services = values.services;
 
+    // ▼ Y軸スケール切り替え（ここを追加）
+    if (currentValueMode === 'perCapita') {
+      chart.options.scales.y.max = 700;     // ★ 人口1人あたり用
+      chart.options.scales.y.ticks.stepSize = 100;
+      chart.options.scales.y.ticks.callback =
+        v => v.toLocaleString() + '円/人';
+    } else {
+      chart.options.scales.y.max = 30000000; // ★ 合計額用（元の値）
+      chart.options.scales.y.ticks.stepSize = undefined;
+      chart.options.scales.y.ticks.callback =
+        v => v.toLocaleString() + '円';
+    }
+
     // 両方 null → 不明
     if (goods == null && services == null) {
       chart.data.datasets[0].data = [0, 0];
