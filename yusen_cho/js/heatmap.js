@@ -328,12 +328,31 @@ const chart = new Chart(ctx, {
         anchor: 'end',
         align: 'end',
         formatter: (value, ctx) => {
-          const name = ctx.chart.options.plugins.title.text;
-          const d = municipalityData[name];
 
-          // goods / services 両方 null の市町村
-          if (d && d.goods == null && d.services == null) {
+          if (!selectedMunicipality) return '';
+
+          const d = municipalityData[selectedMunicipality];
+          if (!d) return '';
+
+          const rawGoods = d.goods;
+          const rawServices = d.services;
+
+          const index = ctx.dataIndex;
+          const rawValue =
+            index === 0 ? rawGoods : rawServices;
+
+          // 両方不明
+          if (rawGoods == null && rawServices == null) {
             return '不明';
+          }
+
+          // 片方不明
+          if (rawValue == null) {
+            return '不明';
+          }
+
+          if (currentValueMode === 'perCapita') {
+            return Math.round(value).toLocaleString() + '円/人';
           }
 
           return value.toLocaleString() + '円';
