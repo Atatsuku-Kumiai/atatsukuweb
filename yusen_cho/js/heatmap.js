@@ -6,7 +6,7 @@ let selectedMunicipality = null;  // ← 地図で最後に選択した市町村
 let currentValueMode = 'total';   // total / perCapita
 let currentMapMode   = 'normal';  // normal / heatmap
 
-Papa.parse('data/nara_purchases.csv', {
+Papa.parse('data/zenkoku_purchases.csv', {
   download: true,
   header: true,
   dynamicTyping: true,
