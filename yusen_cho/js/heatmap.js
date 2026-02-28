@@ -551,6 +551,21 @@ function handleResize() {
 
 //雑に追加
 
+function restoreHoverRect() {
+  if (!selectedMunicipality) return;
+
+  const rect = document.getElementById(selectedMunicipality);
+  if (!rect) return;
+
+  const bbox = rect.getBBox();
+
+  hoverRect.setAttribute('x', bbox.x);
+  hoverRect.setAttribute('y', bbox.y);
+  hoverRect.setAttribute('width', bbox.width);
+  hoverRect.setAttribute('height', bbox.height);
+  hoverRect.style.display = 'block';
+}
+
 function onRankingModeChanged(mode) {
   if (mode !== 'total' && mode !== 'perCapita') return;
 
@@ -602,6 +617,8 @@ function updateMapView() {
   if (currentMapMode === 'heatmap') {
     applyHeatmap();
   }
+
+  restoreHoverRect(); 
 }
 
 //表示用数値の処理関数
@@ -757,7 +774,7 @@ document
         updateTotalLabel(municipalityData[selectedMunicipality]);
       }
       
-      hoverRect.style.display = 'none';
+      restoreHoverRect();
     });
 });
 
@@ -771,6 +788,6 @@ document
 
       updateMapView();
       updateRankingChart();
-      hoverRect.style.display = 'none';
+      restoreHoverRect();
     });
 });
