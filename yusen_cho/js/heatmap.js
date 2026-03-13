@@ -194,7 +194,13 @@ function buildRankingData(mode) {
 function updateRankingChart(mode) {
   if (!rankingChart) return; // ← 追加 安全チェック
 
-  // ▼▼▼ 追加：ボタンの active 切り替え ▼▼▼
+  // ★ まずmodeを確定させる（追加：未指定なら現在の rankingMode を使う）
+  if (!mode) {
+    mode = rankingMode;
+  }
+  rankingMode = mode;
+
+  // ▼▼▼ 追加：ボタンの active 切り替え （確定したmodeを使う）▼▼▼
   document.querySelectorAll('.rank-btn').forEach(btn => {
     btn.classList.remove('active');
   });
@@ -208,11 +214,7 @@ function updateRankingChart(mode) {
   }
   // ▲▲▲ 追加ここまで ▲▲▲
 
-  // ★ 追加：未指定なら現在の rankingMode を使う
-  if (!mode) {
-    mode = rankingMode;
-  }
-  rankingMode = mode;
+
   const rankingData = buildRankingData(mode);
 
   rankingChart.data.labels = rankingData.map(d => d.name);
