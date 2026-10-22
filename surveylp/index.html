@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アンケート認識確認サービス</title>
+
+  <!-- Googleフォント -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <main>
+    <!-- ファーストビュー（Heroエリア） -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-badge-wrap">
+          <span class="hero-subcopy">アンケート認識確認サービス</span>
+        </div>
+        <h1 class="hero-title">
+          紙のアンケートを<br><span>使えるデータ資産</span>へ
+        </h1>
+        <p class="hero-description">
+          開封・スキャン・データ化・集計まで。<br>
+          アンケートに関わる業務をまるごと支援します。
+        </p>
+
+        <!-- 実績ハイライト（2つのカード） -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">受託実績</span>
+            <div class="kpi-num"><span class="kpi-unit">約</span>20,000<span class="kpi-unit">通</span></div>
+            <p class="kpi-note">奈良市 高齢者向けアンケート</p>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">対応可能規模</span>
+            <div class="kpi-num"><span class="kpi-unit">最大</span>100,000<span class="kpi-unit">通</span></div>
+            <p class="kpi-note">1ページ構成アンケートの目安</p>
+          </div>
+        </div>
+
+        <!-- Hero CTAボタン -->
+        <div class="cta-btn-wrap hero-cta">
+          <a href="https://atatsuku.com/#contact" class="btn-primary">お問い合わせ・ご相談はこちら</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- なぜ紙なのか（価値提示）セクション -->
+    <section class="why-paper">
+      <div class="container">
+        <div class="why-paper-inner">
+          <div class="why-paper-text">
+            <h2 class="why-paper-title">紙だから届く、回答があります。</h2>
+            <div class="why-paper-message">
+              <p>Webアンケートが一般化した現在でも、高齢者調査、地域調査、福祉分野、会場配布型の調査など、紙のアンケートが適している場面は少なくありません。</p>
+              <!-- <p>私たちは、<strong>紙の回答しやすさ</strong>と、<strong>デジタルデータの利便性</strong>を両立する仕組みをご提供します。</p> -->
+              <p>私たちは、<strong>紙の回答しやすさ</strong>はそのままに、集めた回答を<strong>活用できるデジタルデータ</strong>に仕上げてお届けします。</p>
+            </div>
+          </div>
+          <div class="why-paper-img">
+            <img src="./images/image01.png" alt="山積みのアンケート封筒に頭を抱える様子">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Before / After セクション -->
+    <section class="problems">
+      <div class="container">
+        <h2 class="section-title">こんなお悩み、ありませんか？</h2>
+        <p class="section-lead">手間のかかる紙アンケート業務をまるごと支援します。</p>
+        <div class="compare-grid">
+
+          <!-- 左：Before カード -->
+          <div class="card card-before">
+            <div class="card-header-bar bar-before">
+              <span class="card-badge-pill">Before</span>
+              <h3 class="card-header-title">これまでの課題</h3>
+            </div>
+            <div class="card-body">
+              <ul class="card-list">
+                <li>
+                  <strong>大量の封筒を開封する作業が大変</strong>
+                  <span>ハサミで中身を切らないよう慎重に開き、用紙のしわを伸ばす作業に数日かかる</span>
+                </li>
+                <li>
+                  <strong>入力作業のための人員確保が必要</strong>
+                  <span>短期バイトの募集や管理、膨大な数の入力作業に加え、入力ミスのチェックに追われる</span>
+                </li>
+                <li>
+                  <strong>個人情報の漏洩リスクが常に不安</strong>
+                  <span>回答者の氏名や住所が作業スタッフ全員に見えてしまう</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 右：After カード -->
+          <div class="card card-after">
+            <div class="card-header-bar bar-after">
+              <span class="card-badge-pill">After</span>
+              <h3 class="card-header-title">当サービスを使えば</h3>
+            </div>
+            <div class="card-body">
+              <ul class="card-list">
+                <li>
+                  <strong>段ボールに詰めて当組合へ送るだけ</strong>
+                  <span>未開封のままでOK<br>開封・スキャン・データ化まですべて代行</span>
+                </li>
+                <li>
+                  <strong>OCR自動認識 ✕ 二重目視</strong>
+                  <span>システムによる自動認識と人間によるチェックの組み合わせで業務を効率化</span>
+                </li>
+                <li>
+                  <strong>画像分割、マスキングで情報漏洩防止</strong>
+                  <span>各設問を自動で切り分けて表示するため、作業者に個人情報が見えない</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 業務の流れ セクション（6ステップ） -->
+    <section class="flow">
+      <div class="container">
+        <h2 class="section-title">アンケート業務の流れ</h2>
+        <p class="section-lead">調査票の設計から回収後のデータ化、分析まで。<br>必要な工程を組み合わせて対応します。</p>
+        <div class="flow-grid">
+          <!-- STEP 1 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 01</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <!-- アンケート用紙 -->
+                <rect x="9" y="7" width="22" height="26" rx="2" fill="#ffffff" stroke="var(--color-primary)"
+                  stroke-width="2" />
+                <line x1="13" y1="12" x2="20" y2="12" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+                <!-- チェックボックス1つ目 -->
+                <rect x="13" y="16" width="4" height="4" rx="1" fill="#fff0e6" stroke="var(--color-accent)"
+                  stroke-width="1.5" />
+                <line x1="19" y1="18" x2="25" y2="18" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+                <!-- チェックボックス2つ目 -->
+                <rect x="13" y="23" width="4" height="4" rx="1" fill="#fff0e6" stroke="var(--color-accent)"
+                  stroke-width="1.5" />
+                <line x1="19" y1="25" x2="25" y2="25" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+                <!-- 短い塗りつぶしの鉛筆（全体をオレンジ一色に統一） -->
+                <g transform="translate(31, 13) rotate(45)">
+                  <!-- 鉛筆の軸 -->
+                  <rect x="0" y="0" width="3.5" height="11" rx="0.5" fill="var(--color-accent)" />
+                  <!-- ペン先もオレンジに統一 -->
+                  <path d="M0 11L1.75 15L3.5 11H0Z" fill="var(--color-accent)" />
+                </g>
+              </svg>
+            </div>
+            <h3 class="flow-card-title">アンケート用紙の設計</h3>
+            <p class="flow-card-desc">
+              認識精度と確認効率を考慮し、チェック欄や自由記入欄の配置を含めて最適なフォーマットをご提案します。
+            </p>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 02</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <!-- 用紙（バランス調整 4:3） -->
+                <rect x="9" y="7" width="22" height="26" rx="2" fill="#ffffff" stroke="var(--color-primary)"
+                  stroke-width="2" />
+                <!-- QRコード（左上配置） -->
+                <g transform="translate(12, 10)">
+                  <rect width="8" height="8" rx="1" fill="#fff0e6" stroke="var(--color-accent)" stroke-width="1.5" />
+                  <rect x="2" y="2" width="2" height="2" fill="var(--color-accent)" />
+                  <rect x="4" y="4" width="2" height="2" fill="var(--color-accent)" />
+                </g>
+                <line x1="13" y1="24" x2="27" y2="24" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" />
+                <line x1="13" y1="28" x2="22" y2="28" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h3 class="flow-card-title">QRコード付き用紙を配布</h3>
+            <p class="flow-card-desc">
+              調査対象者を識別するQRコードを付与した用紙を印刷・配布します。郵送のほか、イベント会場等での配布にも対応します。
+            </p>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 03</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <!-- スキャナ本体（台形・高さを他と揃えるため y=17〜33 に調整） -->
+                <path d="M8 20L11 17H29L32 20V29C32 30.1046 31.1046 31 30 31H10C8.89543 31 8 30.1046 8 29V20Z"
+                  fill="#ffffff" stroke="var(--color-primary)" stroke-width="2" stroke-linejoin="round" />
+                <!-- スキャン稼働ランプ（しっかり見える位置に配置） -->
+                <circle cx="26" cy="24" r="1.5" fill="#0d9488" />
+                <!-- 排紙・給紙スリットの線 -->
+                <line x1="14" y1="24" x2="21" y2="24" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" />
+                <!-- 差し込まれる用紙（スキャナより一回り小さく、まっすぐ縦に配置） -->
+                <rect x="14" y="6" width="12" height="15" rx="1.5" fill="#fff0e6" stroke="var(--color-accent)"
+                  stroke-width="1.5" />
+                <line x1="17" y1="10" x2="23" y2="10" stroke="#94a3b8" stroke-width="1" stroke-linecap="round" />
+                <line x1="17" y1="14" x2="20" y2="14" stroke="#94a3b8" stroke-width="1" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h3 class="flow-card-title">回収・スキャン</h3>
+            <p class="flow-card-desc">
+              回収したアンケート用紙をスキャンし、電子画像としてアンケート認識確認システムへ取り込みます。
+            </p>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 04</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <rect x="10" y="10" width="20" height="20" rx="4" fill="#ffffff" stroke="var(--color-primary)"
+                  stroke-width="2" />
+                <path d="M15 20L19 24L25 15" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3 class="flow-card-title">自動認識・確認</h3>
+            <p class="flow-card-desc">
+              画像の傾きを補正し、回答の位置を自動認識。自由記入欄は可能な範囲でOCRを利用し、最終的な確認は目視で行います。
+            </p>
+          </div>
+
+          <!-- STEP 5 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 05</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <ellipse cx="20" cy="14" rx="10" ry="5" fill="#fff0e6" stroke="var(--color-accent)" stroke-width="2" />
+                <path d="M10 14V26C10 28.7614 14.4772 31 20 31C25.5228 31 30 28.7614 30 26V14"
+                  stroke="var(--color-accent)" stroke-width="2" />
+                <path d="M10 20C10 22.7614 14.4772 25 20 25C25.5228 25 30 22.7614 30 20" stroke="var(--color-accent)"
+                  stroke-width="2" />
+              </svg>
+            </div>
+            <h3 class="flow-card-title">データベース化</h3>
+            <p class="flow-card-desc">
+              確認済みの回答を構造化データとして保存。Excel、CSV、DBスキーマなど、納品形式はご相談に応じます。
+            </p>
+          </div>
+
+          <!-- STEP 6 -->
+          <div class="flow-card">
+            <div class="flow-step">STEP 06</div>
+            <div class="flow-icon">
+              <svg viewBox="0 0 40 40" fill="none">
+                <rect x="10" y="18" width="5" height="12" rx="1.5" fill="var(--color-primary)" />
+                <rect x="17" y="12" width="5" height="18" rx="1.5" fill="#0d9488" />
+                <rect x="24" y="8" width="5" height="22" rx="1.5" fill="var(--color-accent)" />
+              </svg>
+            </div>
+            <h3 class="flow-card-title">集計・分析</h3>
+            <p class="flow-card-desc">
+              クロス集計、地域別・年代別集計、経年変化比較など、保存したデータの集計・分析まで対応します。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- セキュリティ セクション -->
+    <section class="security">
+      <div class="container">
+        <h2 class="section-title">安心の個人情報保護体制</h2>
+        <div class="security-card">
+          <!-- 左側：テキスト説明エリア -->
+          <div class="security-text-col">
+            <h3 class="security-title">確認作業は、必要最小限の情報だけで。</h3>
+            <p class="security-desc">
+              <!--個人情報を含むデータは、アクセスを制限した安全なサーバ環境で管理し、データベースは暗号化して保存します。<br>
+              回答画像は確認単位の領域ごとに分割して管理し、 確認作業者には回答全体や個人を特定する情報を表示せず、 確認対象となる必要最小限の領域のみを提示します。-->
+              個人情報を含むデータは、アクセスを制限した安全なサーバ環境で管理し、データベースは暗号化して保存します。
+            </p>
+            <p class="security-desc">回答画像は、各設問ごとに領域を分割して管理。確認作業者には必要最小限の回答領域のみをランダムに表示し、他の回答部分や個人を特定する情報は表示しません。
+            </p>
+          </div>
+          <!-- 右側：縦並びポイントリスト -->
+          <ul class="security-points">
+            <!-- 1. アクセス制御 -->
+            <li class="security-point-item">
+              <div class="security-point-icon">
+                <svg viewBox="0 0 40 40" fill="none">
+                  <g transform="translate(2, 0)">
+                    <!-- 人物アイコン -->
+                    <circle cx="15" cy="14" r="4" stroke="var(--color-primary)" stroke-width="2" fill="#fff0e6" />
+                    <path d="M8 28C8 23.5817 11.134 20 15 20C18.866 20 22 23.5817 22 28" stroke="var(--color-primary)"
+                      stroke-width="2" stroke-linecap="round" />
+                    <!-- 左右対称の綺麗な錠前（人物に少し重ねる） -->
+                    <g transform="translate(20, 20)">
+                      <rect x="0" y="3" width="11" height="8" rx="1.5" fill="#ffffff" stroke="var(--color-accent)"
+                        stroke-width="1.5" />
+                      <path d="M2.5 3V1.5C2.5 0.671573 3.17157 0 4 0H7C7.82843 0 8.5 0.671573 8.5 1.5V3"
+                        stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" />
+                      <circle cx="5.5" cy="7" r="0.9" fill="var(--color-accent)" />
+                      <path d="M5.5 7.8V9.5" stroke="var(--color-accent)" stroke-width="1.2" stroke-linecap="round" />
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <div class="security-point-text">
+                <strong>アクセス制御</strong>
+                <span>作業者ごとに必要な機能・情報のみへアクセスを限定します。</span>
+              </div>
+            </li>
+
+            <!-- 2. データの暗号化 -->
+            <li class="security-point-item">
+              <div class="security-point-icon">
+                <!-- 暗号化・南京錠アイコン -->
+                <svg viewBox="0 0 40 40" fill="none">
+                  <!-- ブリーフケース本体 -->
+                  <rect x="7.5" y="13" width="25" height="18" rx="2" fill="#fff0e6" stroke="var(--color-primary)"
+                    stroke-width="2" />
+                  <path d="M13 13V8.5C13 7.39543 13.8954 6.5 15 6.5H25C26.1046 6.5 27 7.39543 27 8.5V13"
+                    stroke="var(--color-primary)" stroke-width="2" />
+
+                  <!-- 中央の錠前 -->
+                  <g transform="translate(15, 16.5)">
+                    <rect x="0" y="3" width="10" height="8" rx="1" fill="#ffffff" stroke="var(--color-accent)"
+                      stroke-width="1.5" />
+                    <path d="M3 3V1.5C3 0.671573 3.67157 0 4.5 0H5.5C6.32843 0 7 0.671573 7 1.5V3"
+                      stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" />
+                    <circle cx="5" cy="6.5" r="0.9" fill="var(--color-accent)" />
+                    <path d="M5 7.4V9.2" stroke="var(--color-accent)" stroke-width="1.2" stroke-linecap="round" />
+                  </g>
+                </svg>
+              </div>
+              <div class="security-point-text">
+                <strong>データの暗号化</strong>
+                <span>アンケートデータを暗号化した環境で保管します。</span>
+              </div>
+            </li>
+
+            <!-- 3. 回答領域の分割管理 -->
+            <li class="security-point-item">
+              <div class="security-point-icon">
+                <svg viewBox="0 0 40 40" fill="none">
+                  <!-- 用紙ベース -->
+                  <rect x="9" y="7" width="22" height="26" rx="2" fill="#ffffff" stroke="var(--color-primary)"
+                    stroke-width="2" />
+
+                  <!-- 四角いドットの点線 -->
+                  <line x1="11.5" y1="15" x2="29.5" y2="15" stroke="var(--color-accent)" stroke-width="1.5"
+                    stroke-dasharray="1 3" stroke-linecap="square" />
+                  <line x1="18" y1="17.5" x2="18" y2="31" stroke="var(--color-accent)" stroke-width="1.5"
+                    stroke-dasharray="1 3" stroke-linecap="square" />
+
+                  <!-- 上部エリアのダミーテキスト線 -->
+                  <line x1="13" y1="11" x2="27" y2="11" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" />
+
+                  <!-- 左下領域のチェックボックス -->
+                  <rect x="12" y="19.5" width="3" height="3" rx="0.5" stroke="#cbd5e1" stroke-width="1.2" />
+                  <rect x="12" y="24.5" width="3" height="3" rx="0.5" stroke="#cbd5e1" stroke-width="1.2" />
+
+                  <!-- 虫眼鏡（右下：Tのヨコ線と用紙下端の間の中央に配置） -->
+                  <g transform="translate(18, 15)">
+                    <circle cx="9" cy="9" r="6.6" fill="#fff0e6" fill-opacity="0.9" stroke="var(--color-accent)"
+                      stroke-width="1.4" />
+                    <path d="M13.8 13.8L18.5 18.5" stroke="var(--color-accent)" stroke-width="1.8"
+                      stroke-linecap="round" />
+                    <!-- 虫眼鏡の中の切り出しテキスト（横線） -->
+                    <line x1="5.5" y1="7.5" x2="12.5" y2="7.5" stroke="var(--color-primary)" stroke-width="1.1"
+                      stroke-linecap="round" />
+                    <line x1="5.5" y1="10.5" x2="11.5" y2="10.5" stroke="var(--color-primary)" stroke-width="1.1"
+                      stroke-linecap="round" />
+                  </g>
+                </svg>
+              </div>
+              <div class="security-point-text">
+                <strong>回答領域の分割管理</strong>
+                <span>確認に必要な箇所だけを切り出し、不要な個人情報の露出を防ぎます。</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 地域・福祉連携 セクション -->
+    <section class="social">
+      <div class="container">
+        <div class="social-inner">
+          <h2 class="social-title">データ確認作業を、就労の機会へ。</h2>
+          <p class="social-desc">
+            <!--個人情報保護に配慮して業務を細分化することで、確認作業の一部を社会福祉法人等を通じて就労困難者へ割り当てています。
+            デジタル化による効率化だけでなく、人の確認が必要な工程を適切に切り分けることで、 就労機会の創出にもつなげています。<br>
+            <strong>SDGs</strong>はもちろん、<strong>CSR</strong>や自治体等における<strong>優先調達の仕組み</strong>との親和性もあります。-->
+            データ確認・入力作業の一部は、就労継続支援事業所や社会福祉法人などと連携して行っています。<br>
+            個人情報保護に配慮して作業を細分化することで、業務の効率化とともに地域の就労機会の創出を実現。<br>
+            障害者優先調達や、SDGs（働きがいと地域共生）を見据えた雇用の促進に取り組んでいます。
+          </p>
+          <div class="sdg-badges">
+            <div class="sdg-badge">
+              <img src="images/sdg_08.png" alt="SDGs目標8 働きがいも経済成長も" class="sdg-icon">
+              <p class="sdg-badge-text"><strong>目標8：働きがいも経済成長も</strong>ご発注が、継続的な就労機会の創出と地域の発展につながります。</p>
+            </div>
+            <div class="sdg-badge">
+              <img src="images/sdg_10.png" alt="SDGs目標10 人や国の不平等をなくそう" class="sdg-icon">
+              <p class="sdg-badge-text"><strong>目標10：人や国の不平等をなくそう</strong>障がいの有無によらない、誰もが能力を発揮できる社会の実現を目指します。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- よくあるご質問 セクション -->
+    <section class="faq">
+      <div class="container">
+        <h2 class="section-title">よくあるご質問</h2>
+        <div class="faq-list">
+          <details>
+            <summary>どのくらいの件数から依頼できますか？</summary>
+            <p>小規模なものはもちろん、1ページ構成のアンケートであれば10万件程度までを目安に対応可能です。</p>
+          </details>
+          <details>
+            <summary>個人情報を含むアンケートでも大丈夫でしょうか？</summary>
+            <p><b>はい。</b><br>個人情報と回答情報は分離して扱います。<br>確認作業においては、個人情報に紐づかない形で最小限の情報だけをランダムに表示する仕組みを採用しています。</p>
+          </details>
+          <details>
+            <summary>手書きの回答もデータ化できますか？</summary>
+            <p><b>はい。</b><br>チェック項目の自動認識に加え、手書きの自由記入欄についてもOCRや人による確認を組み合わせて対応いたします。</p>
+          </details>
+          <details>
+            <summary>Webアンケートとの併用は可能ですか？</summary>
+            <p><b>はい。</b><br>紙回答とオンライン回答を組み合わせた運用にも対応できます。</p>
+          </details>
+          <details>
+            <summary>アンケート用紙の原本はどうなりますか？</summary>
+            <p>スキャン・データ化が完了した後、安全に梱包して返却いたします（ご希望に応じて機密廃棄のご相談も承ります）。</p>
+          </details>
+          <details>
+            <summary>納品の形式はどのようなものになりますか？</summary>
+            <p>Excel、CSV、DBスキーマ、集計表、分析資料など、ご希望の用途に合わせて納品形式をご相談いただけます。<br>
+              また、保存したデータを活用したクロス集計、地域差・年代差、経年変化などの集計・分析にも対応します。
+            </p>
+          </details>
+        </div>
+
+    </section>
+
+    <!-- 最下部 お問い合わせ（CTA）セクション -->
+    <section class="cta">
+      <div class="container">
+        <div class="cta-inner">
+          <h2 class="section-title">お気軽にご相談ください</h2>
+          <p class="cta-desc">
+            アンケート認識確認サービスに関するお問い合わせ・ご相談をお待ちしております。<br>
+            「概算の見積もりがほしい」「用紙のレイアウト段階から相談したい」など、<br>
+            どのようなことでもお気軽にお問い合わせください。
+          </p>
+          <div class="cta-btn-wrap">
+            <a href="https://atatsuku.com/#contact" class="btn-primary">お問い合わせ・ご相談はこちら</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+
+</html>
