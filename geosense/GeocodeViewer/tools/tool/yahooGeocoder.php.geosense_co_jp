@@ -1,0 +1,90 @@
+<?php
+// YahooMapsのジオコーダにより、住所を緯度経度に変換する。
+//
+// 引数：GET変数 'address' : 検索したい住所文字列 
+// 戻り値：　XML形式の検索結果
+//
+// 結果はXML形式で返される。フォーマットはYahooMapsの開発サイト参照。
+// ピンポイントでマッチングできない時は複数の地点の緯度経度が返される。
+// 
+
+$address = $_GET['address'];
+
+mb_regex_encoding( "UTF-8" );
+$replace = "\.\.|[][&$*\|^?<>!/]";
+//$address = mb_ereg_replace( $replace, "", $address );
+if ( mb_ereg( $replace, $address ) ){
+	echo("error: 住所文字列では使用されない文字が含まれています。");
+	return;
+}
+
+//$gYahooLocalSearchUrl = "http://api.map.yahoo.co.jp/LocalSearchService/V1/LocalSearch";
+$gYahooYolpUrl = "http://geo.search.olp.yahooapis.jp/OpenLocalPlatform/V1/geoCoder";
+$gYahooID = "maptools";
+$url = $gYahooYolpUrl . "?appid=" . $gYahooID . "&query=" . urlencode( $address );
+
+$res = httpRequest( $url, "", "" );
+
+echo $res['body'];
+return;
+
+
+// HTTPでサーバにアクセスする。
+//
+// $url : サーバのURLおよびサーチパス。認証はサポートしていない。
+// $header : 追加ヘッダー。$bodyが""でないときは”Content-Type: text/xml"などContent-Typeを指定。
+//           その他"User-Agent: " などを指定。
+// $body   : POSTの本文。GETの場合は""を指定。
+//
+// 戻り値：サーバから返されたデータ（ヘッダーとボディ）。接続できなかった場合はfalseを返す。
+//
+function httpRequest( $url, $header, $body )
+{
+	$urls = parse_url( $url );
+
+	if ( $body == "" ) $request = "GET ";
+	else $request = "POST ";
+	$request .= $urls['path'];
+
+	$query = $urls['query'];
+	if ( $query != "" ) $request .= "?" . $query;
+	$request .= " HTTP/1.0\r\n";
+
+	$host = $urls['host'];
+	$request .= "Host: " . $host . "\r\n";
+	$request .= $header . "\r\n";
+	if ( $body != "" ){
+		$request .= "Content-Length: ". strlen( $body ) . "\r\n";
+		$request .= "\r\n" . $body;
+	}
+	else $request .= "\r\n";
+
+	$port = $urls['port'];
+	if ( ! $port ) $port = 80;
+
+	$res = "";
+	$fp = fsockopen( $host, $port, $errno, $errstr, 10 );
+	if ( $fp ){
+		fwrite( $fp, $request );
+		while( !feof( $fp ) ){
+			$res.= fread( $fp, 1024 );
+		}
+		fclose( $fp );
+	}
+	else return false;
+
+	$pos = strpos( $res, "\r\n\r\n" );
+	$response[ 'header' ] = substr( $res, 0, $pos );
+	$response[ 'body' ] = substr( $res, $pos+4 );
+	return $response;
+}
+
+
+function xdebug( $message )
+{
+	$fp = fopen( "/tmp/phpdebug.txt", "a+" );
+	fwrite( $fp, $message."\r\n" );
+	fclose( $fp );
+}
+
+?>

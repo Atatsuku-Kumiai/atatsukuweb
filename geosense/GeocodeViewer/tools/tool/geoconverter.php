@@ -1,0 +1,1962 @@
+<?php
+//
+
+$config = require dirname(__DIR__) . '/config.local.php';
+$googleKey = $config['google_maps_api_key'];
+$googleMapId = $config['google_map_id'];
+//$googleMapId = "DEMO_MAP_ID"; // ローカル動作確認用。公開時は自身のMap IDを指定してください
+
+
+$command = $_GET['cmd'] ?? '';
+
+//-------------------------------------------------------------------------------
+//                                     HTML
+//-------------------------------------------------------------------------------
+?>
+
+
+<!-- ジオコードビューア用ページ -->
+<HTML lang="ja" xmlns:vml="urn:schemas-microsoft-com:vml">
+<HEAD>
+
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<TITLE>GIS: 地理的コードの表示 :Geocode Viewer:ジオコードビューア:緯度経度変換</TITLE>
+
+<style type="text/css">
+	vml\:* { behavior: url(#default#VML); }
+</style>
+
+<!-- ライブラリスクリプト -->
+<!--script type="text/javascript" src="httpreq.js"></script-->
+<script type="text/javascript" src="/lib/projection/gausskruger.js"></script>
+<script type="text/javascript" src="/lib/datum/datumconv.js"></script>
+<!-- Google Maps 用スクリプト -->
+<!--SCRIPT src="http://maps.google.co.jp/maps?file=api&v=2&key=<?php echo $googleKey; ?>" type="text/javascript" charset="utf-8"></SCRIPT-->
+<script type="text/javascript">
+// API読込完了とDOM構築完了の双方を待って既存のload()を一度だけ呼ぶ。
+window.initMap = function () {
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", load, { once: true });
+    } else {
+        load();
+    }
+};
+</script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=<?php echo urlencode($googleKey); ?>&amp;loading=async&amp;libraries=marker&amp;callback=initMap" charset="utf-8"></script>
+
+<!-- その他スクリプト -->
+<!--script type="text/javascript" src="/lib/httpreq/xmlhttpreq.js"></script-->
+<script type="text/javascript" src="/lib/map/util2.js"></script>
+
+
+<SCRIPT type="text/javascript">
+	var GOOGLEMAPS = 101;
+	var YAHOOMAPS = 103;
+	var COORMAX = 10000000;
+	var ADDRESS = 1;
+	var MESHCODE = 2;
+	var LOCAPO = 3;
+	var SONYCODE = 4;
+
+	var WORLD = 0;
+	var TOKYO = 1;
+
+	var MESH_TEXTFRAME_COLOR = "#aaaaff";
+
+	var MINIMUM = 0.0000000001;
+
+	var gMap,mainMarker,closeByMarker,viewPointMarker,marker;
+	var gCurrentMapNumber;
+	var gMapWidth,gMapHeight,gMapTop,gMapLeft;
+	var gNumMaps;
+	var gCanvasWidth,gCanvasHeight,gCtx,gTestErl;
+	var i;
+	var gNews;
+	var gNumConvItems = 4;		// 変換項目の数
+	var gConvItem = 0;				// 現在の変換項目
+
+	var gGoogleMapsOverlays = {};
+	//var gGoogleMapsOverlays = new Array();
+	var gGoogleMapsOverlayNum = 0;
+	var gGoogleMapsCenterMark;
+	
+	var gGoogleMapsCenter;
+	var gDspPointCoorLatEle,gDspPointCoorLonEle;
+	var gCursorLatEle,gCursorLonEle;
+	var gJapanDatumStrEle;
+	var gMeshcodeTitleEle;
+	var gSonyCodeEle;
+
+	var gYahooGeocoderUrl = "yahooGeocoder.php";
+	var gMeshRectNum = 0;
+	var gMeshDispType = 0;
+	var gMeshTextboxChanged = 0;	// メッシュコードの数値が変更された時true
+	var gMeshcodeEle = new Array();
+
+	var gDispCursorFormat = 0;	// 初期値は度単位
+	var gDatum = WORLD;			// 測地系は世界測地系
+
+	//変数の初期化
+		
+
+	// ブラウザ判定
+	var gBrowser;
+	var IE = 1;
+	var FX = 2;
+	var NA = 3;
+	if ( navigator.appName.indexOf("Microsoft") != -1 ) gBrowser = IE;
+	else if ( navigator.userAgent.indexOf("Gecko/") != -1 ) gBrowser = FX;
+	else gBrowser = NA;
+
+	// ソニーコード用
+	var gSonyChars = "0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+	//その他
+	gCurrentMapNumber = -1;	//none
+	var CRLF = '\r\n';
+
+	// ベースマップデータ
+	// リスト最初の地図は緯度経度で表示する地図（GoogleMapsなど）とする。
+
+  var basemapData = [
+	    { "mapUrl":"", "mapName":"Google Maps", "mapType":101, "placeBase":"GoogleMaps", "placeType":"WGS84緯度経度(度)" },
+	];
+												
+	// この内容は、CGIにより、地図サーバにアクセスした結果を埋め込む。
+	// 配列のインデックスがmapNumber
+
+
+
+// ****************************************************************************
+//                                       関数
+//----------------------------------------------------------------------------
+
+// ・指定ない場合、lat,lonなど緯度経度の単位は度単位
+
+
+//-----------------------------------------------------------------------
+//                       サーバ関連
+//-----------------------------------------------------------------------
+//
+// XML HTTP Request 
+// HTTP通信を使って,非同期で、WEBリソースを取得する。
+//
+// url  : 取得するリソースのURL
+// postData : 'POST'するデータ。'GET'の場合は""を指定。
+// callbackFunc : 通信が終了した場合に呼び出す関数
+//               callbackFunc( status, body, header ); 
+//                         status      ：実行結果( -1:タイムアウト その他：HTTPステータス )
+//                         body        ：HTTP本文
+//                         header      ：HTTPヘッダ
+// (timeoutMilliSec) : タイムアウトまでの時間（ミリ秒で指定）
+// (user) : ユーザ名
+// (password): パスワード
+// 
+// ()書きの引数は,必要ない場合は指定しないか""を指定。
+//
+// 注：urlまたはpostdataは、encodeURI(),encodeURIComponent()などにより、URLエンコードしておく。
+//
+// 戻り値＝　０：正常終了（アクセス結果はcallbackFunc()を通じて取得する。）
+//         負数：エラーコード
+//     
+function xmlHttpRequest( url, postData, callbackFunc, timeoutMilliSec, user, password )
+{
+	var xmlhttp = false;
+	var httpObj,method,syncFlag;
+	var timerId;
+	var timeout = false;
+
+	// XMLHttpRequestオブジェクトの作成
+	if ( window.XMLHttpRequest ){ // Firefox 用
+		httpObj = new XMLHttpRequest();
+	}
+	else if ( window.ActiveXObject ){	// IE用
+		try{
+			httpObj = new ActiveXObject( "Msxml2.XMLHTTP" );
+		} 
+		catch(e){
+			try {
+				httpObj = new ActiveXObject( "Microsoft.XMLHTTP" );
+			}
+			catch(e){
+				return -1;
+			}
+		}
+	}
+	else return -2;
+	
+	if ( postData ) method = 'POST';
+	else method = 'GET';
+	httpObj.open( method, url );
+	//httpObj.open( method, url, true, user, password );	
+	if ( timeoutMilliSec ){
+	  	timerId = setTimeout( onTimeout, timeoutMilliSec );
+	}
+
+	// 状態が遷移した時の処理. open()の後に定義（for IE)
+	httpObj.onreadystatechange = function()
+	{
+		switch( httpObj.readyState ){
+			case 0: // uninitialized
+			case 1: // loading
+			case 2: // loaded
+			case 3: // interactive
+				break;
+
+			case 4: // complete
+				clearTimeout( timerId );
+				if ( ! timeout )
+					callbackFunc( httpObj.status, httpObj.responseText, httpObj.getAllResponseHeaders() );	
+				break;
+		}
+	}
+
+	if ( method == 'POST' ) httpObj.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded' );
+	httpObj.setRequestHeader( "If-Modified-Since", "Sat, 01 Jan 2000 00:00:00 GMT" ); // IEキャッシュ対策
+
+	httpObj.send( postData );
+
+	function onTimeout() 
+	{
+		timeout = true;
+		httpObj.abort();
+		callbackFunc( -1, "", "" );
+	}
+
+	return 0;
+}
+
+
+//-----------------------------------------------------------------------
+//                       初期化関連                   
+//-----------------------------------------------------------------------
+
+//
+// ページが表示された時の初期化
+//
+function load() 
+{
+	var ele;
+	// ベースマップリストの設定
+	gNumMaps = basemapData.length;
+//	var ele = document.getElementById( "basemap" );
+//	for ( var i=0; i <gNumMaps; i++){
+//		ele.options[i] = new Option( basemapData[i].mapName, i );
+//	}
+
+	//変数の初期化
+	ele = document.getElementById("map");
+	gMapWidth = parseInt(ele.style.width);
+	gMapHeight = parseInt(ele.style.height);
+
+	gCursorLatEle = document.getElementById("cursorLat");
+	gCursorLonEle = document.getElementById("cursorLon");
+	gDspPointCoorLatEle = document.getElementById("dspPointCoorLat");
+	gDspPointCoorLonEle = document.getElementById("dspPointCoorLon");
+	gJapanDatumStrEle = document.getElementById("japanDatumStr");
+	gMeshcodeTitleEle = document.getElementById("meshcodeTitle");
+	gSonyCodeEle = document.getElementById("sonyText");
+	gMenuEle = document.getElementById("menu");
+
+	for ( i=1; i <= 8; i++ ){
+		gMeshcodeEle[i] = document.getElementById( "meshcodeText" + i );
+	}
+
+	//座標値は空欄
+	gDspPointCoorLatEle.value = "";
+	gDspPointCoorLonEle.value = "";
+
+	//表示項目は指定なし
+	gMenuEle.selectedIndex = 0;
+
+	//表示形式は度
+	var cursorFormatEle = document.getElementById("dspCursorFormat");
+	cursorFormatEle.selectedIndex = 0;
+	
+	//測地系は世界測地系
+	var eles = document.getElementsByName("dspDatum");
+	eles[0].checked = true;
+
+	// メッシュコード入力用ボックスの枠設定
+	for ( i = 1; i <= 8; i++){
+		ele = gMeshcodeEle[i];
+		ele.style.borderColor = MESH_TEXTFRAME_COLOR;
+		ele.style.borderStyle = "solid";
+		ele.style.borderWidth = "1";
+	}
+
+	//投影法
+	var lat0 = 36;
+	var lon0 = 136;
+	var m0 = 0.9999;
+  	var s = gkrugerSetParams( lat0, lon0, m0, 0, 0 );
+
+
+	// mapリストの最初の地図を表示。最初の地図は緯度経度ベースの地図とする。
+	setMap(0); 
+
+	// 変換項目は何も表示しない
+	setConvItem(0); 
+
+<?php
+	// コマンドラインに引数がある場合
+if ( $command == 'meshcode' ){
+	echo("gMenuEle.selectedIndex = 2;");
+	echo("setConvItem(2);");
+}
+?>
+
+}
+
+//-----------------------------------------------------------------------
+//                       地図関連                   
+//-----------------------------------------------------------------------
+// 地図を切り替えた時の処理
+
+function setMap( mapNumber )
+{
+	var currentMapType = -1;
+
+	//地図のタイプの取得
+	if ( gCurrentMapNumber >= 0 ) currentMapType = basemapData[gCurrentMapNumber].mapType;
+	var newMapType = basemapData[mapNumber].mapType;
+
+	//地図のタイプ別に地図を表示
+	gCurrentMapNumber = mapNumber;
+	//document.getElementById("basemap").value = mapNumber;
+	switch( newMapType ){
+		case 101:
+			googleMapsInit();
+			break;
+
+		default:
+	}
+	
+}
+
+
+//-----------------------------------------------------------------------
+//                       Googleマップ
+//-----------------------------------------------------------------------
+
+function googleMapsInit()
+{
+	// GoogleMapsの初期化
+	var initPosition = new google.maps.LatLng(36.0, 135.0);
+	var gMapOptions = {
+	    center: initPosition,
+		mapId: <?php echo json_encode($googleMapId); ?>,
+		zoom: 4,
+		mapTypeId: google.maps.MapTypeId.ROADMAP,
+
+		mapTypeControl: true,
+		mapTypeControlOptions: {
+			style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+			position: google.maps.ControlPosition.TOP_RIGHT
+		},
+
+		scaleControl: true,
+		scaleControlOptions: {
+			position: google.maps.ControlPosition.TOP_LEFT
+		},
+
+		scrollwheel: true,
+		gestureHandling: 'greedy',	// no Controll key
+
+		draggableCursor:'crosshair'
+	};
+
+	gMap = new google.maps.Map(document.getElementById('map'), gMapOptions);
+
+	google.maps.event.addListener(gMap, "click", googleMapsClick );
+	//google.maps.event.addListener(gMap, "dblclick", googleMapsDblClick );
+
+	google.maps.event.addListener(gMap, "movestart", googleMapsMoveStart );
+	google.maps.event.addListener(gMap, "mousemove", googleMapsCursorMove );
+
+	// 旧Markerの画像とアンカー位置を維持してAdvancedMarkerElementへ移行。
+	var iconImage = document.createElement('img');
+	iconImage.src = 'cross32.gif';
+	iconImage.width = 32;
+	iconImage.height = 32;
+	iconImage.style.display = 'block';
+	iconImage.draggable = false;
+
+	gGoogleMapsCenterMark = new google.maps.marker.AdvancedMarkerElement({
+		position: initPosition,
+		anchorLeft: '-15px',
+		anchorTop: '-16px',
+		gmpClickable: true
+	});
+	gGoogleMapsCenterMark.appendChild(iconImage);
+	gGoogleMapsCenterMark.map = gMap;
+
+	googleMapsClick2( initPosition )
+}
+
+function googleMapsUnload()
+{
+}
+
+function googleMapsDblClick( overlay, point )
+{
+	if ( point ) gMap.setCenter( gGoogleMapsCenter );
+}
+
+function googleMapsMoveStart( event )
+{
+	gGoogleMapsCenter = gMap.getCenter();
+}
+
+
+function googleMapsCursorMove( event )
+{
+	var point = event.latLng;
+	var lat = point.lat();
+	var lon = point.lng();
+
+	if ( gDatum == TOKYO ){
+		var latlon = geoDatumWorld2Tokyo( 1, lat, lon, 0 );
+		lat = latlon.lat;
+		lon = latlon.lon;
+	}
+
+	var strLatLon = degree2Str( lat, lon, gDispCursorFormat );
+
+	gCursorLatEle.value = strLatLon.lat;
+	gCursorLonEle.value = strLatLon.lon;
+}
+
+
+var gTimerId = null;
+var gPointClicked;		// GoogleMaps point
+
+// pointの測地系は世界測地系
+function googleMapsClick( event )
+{
+	var point = event.latLng;
+	googleMapsClick2( point );
+}
+
+function googleMapsClick2( point )
+{
+	if ( !point ){
+		googleMapsRemoveOverlay( -1 );
+		return;
+	}
+	if ( gTimerId ) {
+		clearTimeout( gTimerId );
+		gTimerId = null;
+		return;
+	}
+	gPointClicked = point;
+	gTimerId = setTimeout("googleMapsSetPoint()", 200 );
+}
+
+function googleMapSetCenterMark( point )
+{
+	gGoogleMapsCenterMark.position = point;
+}
+
+function googleMapsSetPoint()
+{
+	googleMapsRemoveOverlay( -1 );
+
+	googleMapSetCenterMark( gPointClicked );
+	gMap.setCenter( gPointClicked );
+	
+	lat = gPointClicked.lat();
+	lon = gPointClicked.lng();
+
+	if ( gDatum == TOKYO ){
+		var latlon = geoDatumWorld2Tokyo( 1, lat, lon, 0 );
+		lat = latlon.lat;
+		lon = latlon.lon;
+	}
+
+	strLatLon = degree2Str( lat, lon, gDispCursorFormat );
+
+	gDspPointCoorLatEle.value = strLatLon.lat;
+	gDspPointCoorLonEle.value = strLatLon.lon;
+	gTimerId = null;
+
+	// 変換項目の処理(lat.lonは現在の測地系での値）
+	switch( gConvItem ){
+		case MESHCODE: dispMeshCode( lat, lon ); break;
+		case LOCAPO:   dispLocapo( lat, lon ); break;
+		case SONYCODE: dispSonyCode( lat, lon ); break;
+	}
+}
+
+// 指定した緯度経度の点に赤の十字を表示する。
+//   datum : lat,lonの測地系
+//   setCenter :  0:地図は移動しない。1:指定点を中心にする。
+//
+function googleMapsDispRedCross( lat, lon, datum, setCenter )
+{
+	var lat0,lon0;	
+	if ( datum == TOKYO ){
+		latlon = geoDatumTokyo2World( 1, lat, lon, 0 );
+		lat0 = latlon.lat;
+		lon0 = latlon.lon;
+	}
+	else{
+		lat0 = lat;
+		lon0 = lon;
+	}
+
+	var point = new google.maps.LatLng( lat0, lon0 );
+	googleMapSetCenterMark( point );
+	if ( setCenter ) gMap.setCenter( point );
+}
+
+
+//
+// テキストボックスで指定された緯度経度の点に移動する。
+//
+function gotoPoint()
+{
+	var lat = getDegreeFromStr( gDspPointCoorLatEle.value, gDispCursorFormat );
+	var lon = getDegreeFromStr( gDspPointCoorLonEle.value, gDispCursorFormat );
+	if ( lat == null || lon == null ) {
+		alert("緯度経度の変換ができませんでした。");
+		return;
+	}
+
+	if ( gDatum == TOKYO ){
+		var latlon = geoDatumTokyo2World( 1, lat, lon, 0 );
+		lat = latlon.lat;
+		lon = latlon.lon;
+	}
+
+	var point = new google.maps.LatLng( lat, lon );
+	googleMapsClick2( point );
+}
+
+//
+// 緯度経度の表示を変更された表示形式で更新する。
+//
+function updateCoorDisp( lastFormat )
+{
+	var lat,lon;
+	lat = getDegreeFromStr( gDspPointCoorLatEle.value, lastFormat );
+	lon = getDegreeFromStr( gDspPointCoorLonEle.value, lastFormat );
+
+	var strLatLon = degree2Str( lat, lon, gDispCursorFormat );
+
+	gDspPointCoorLatEle.value = strLatLon.lat;
+	gDspPointCoorLonEle.value = strLatLon.lon;
+}
+
+//
+// 緯度経度の表示を変更された測地系で更新する。
+//
+// 戻り値：赤の十字の更新された緯度経度
+//
+function updateCoorDispDatum()
+{
+	var lat,lon;
+	lat = getDegreeFromStr( gDspPointCoorLatEle.value, gDispCursorFormat );
+	lon = getDegreeFromStr( gDspPointCoorLonEle.value, gDispCursorFormat );
+
+	if ( !lat) return;
+
+	if ( gDatum == TOKYO ){
+		var latlon = geoDatumWorld2Tokyo( 1, lat, lon, 0 );
+	}
+	else{
+		var latlon = geoDatumTokyo2World( 1, lat, lon, 0 );
+	}
+
+	var strLatLon = degree2Str( latlon.lat, latlon.lon, gDispCursorFormat );
+
+	gDspPointCoorLatEle.value = strLatLon.lat;
+	gDspPointCoorLonEle.value = strLatLon.lon;
+
+	return latlon;
+}
+
+/*
+function geoDatumWorld2Tokyo( dataum, lat, lon, h )
+{
+alert("pos1");
+	var latlon = new Object();
+	latlon.lat = lat;
+	latlon.lon = lon;
+alert("pos11");
+	return latlon;
+}
+*/
+
+//
+// 緯度経度の文字列を度に変換する。
+//
+//  format: 表示形式
+//
+function getDegreeFromStr( str, format )
+{
+	var degree,deg,min,sec,value,sign;
+	str = numZen2Han( str );
+
+	var pos = str.search("[-sSwW]");
+	if ( pos >= 0 ) {
+		sign = -1;
+		str = str.substring( pos + 1 );
+	}
+	else sign = 1;
+
+	var regNum = /[-+0-9.]+/g;
+	var val = new Array();
+	for (var i=0; i < 3; i++){
+		var match = regNum.exec( str );
+		if ( !match ) break;
+		val[i] = match[0];
+	}
+	regNum.lastIndex = 0;		// for Firefox bug
+
+	var numVal = val.length;
+	if ( numVal == 0 ) return null;
+
+
+	if ( numVal == 1 ){
+		value = parseFloat( str );
+		switch( format ){
+			case 1:	// ddmm.mmm
+				deg = Math.floor( value / 100 );
+				min = Math.floor( value - deg * 100 );
+				sec = ( value - deg * 100 - min ) * 60;
+				break;
+
+			case 2:	// ddmmss.sss
+				deg = Math.floor( value / 10000 );
+				min = Math.floor( ( value - deg * 10000 ) / 100 );
+				sec = value - deg * 10000 - min * 100;
+				break;
+
+			case 5:	// dd.mm.ss.sss
+				deg = 0;
+				min = 0;
+				sec = 0;
+				var nums = str.split(".");
+				var n = nums.length;
+
+				if ( n > 0 ) deg = parseInt( nums[0] );
+				if ( n > 1 ) min = parseInt( nums[1] );
+				if ( n > 2 ) sec = parseInt( nums[2] );
+				if ( n > 3 ) sec += parseFloat( "." + nums[3] );
+				break;
+
+			case 6:	// ssssss
+				deg = value / 3600000;
+				min = 0;
+				sec = 0;
+				break;
+
+			default:
+				deg = value;
+				min = 0;
+				sec = 0;
+		}
+
+	}
+	else {
+		deg= parseInt( val[0] );
+		min = val[1];
+		if ( numVal > 2 ) sec = val[2];
+		else sec = 0;
+	}
+	
+	if ( deg < 0 ){
+		sign = -1;
+		deg = -deg;
+	}
+	if ( deg > 180 || min > 60 || sec > 60 || deg < 0 || min < 0 || sec < 0 ) return null;
+	if ( sec == 60 ) {
+		sec = 0;
+		min++;
+	}
+	if ( min == 60 ) {
+		min = 0;
+		deg++;
+	}
+		
+	degree = deg + min / 60 + sec / 3600;
+
+	return sign * degree;
+}
+
+// 文字列に含まれる全角数字を半角にする。
+//
+function numZen2Han( text )
+{
+	var text2="";
+
+	var numHan = "0123456789+-.,";
+	var numZen = "０１２３４５６７８９＋ー．，";
+	var reg = new RegExp();
+	for( var i=0; i < numZen.length; i++){
+		reg.compile( numZen.charAt(i), "g" );
+		text = text.replace( reg, numHan.charAt(i) );
+	}
+	return text;
+}
+
+// GoogleMapsに描いたオーバーレイ（点やライン）を消去する。
+//
+//  ovelayNum : googleMapsPolyline()などで返された番号
+//              -1を指定した場合は全てのオーバレイを消去する。
+
+function googleMapsRemoveOverlay( overlayNum )
+{
+	if ( overlayNum == -1 ) {
+		for ( key in gGoogleMapsOverlays ){
+			if ( gGoogleMapsOverlays[ key ] ){
+				gGoogleMapsOverlays[ key ].setMap(null);
+			}
+			delete gGoogleMapsOverlays[ key ];
+		}
+	}
+	else {
+		if ( gGoogleMapsOverlays[ overlayNum ] )
+			gGoogleMapsOverlays[ overlayNum ].setMap(null);
+	}
+	
+}
+
+// GoogleMapsにラインを描く
+//
+// points : points[i] = new google.maps.LatLng( lat, lon );で作成された配列
+// color  : 線の色。"#RRGGBB" の形式の文字列
+// width  : 線の幅（ピクセル）
+// opacity: 不透明度（0から1までの実数値で指定。0が透明,1が不透明）
+//
+// 戻り値＝ オーバーレイ番号
+//          この値でgoogleMapsRemove()を呼び出す事で描いたラインを消す事ができる。
+
+function googleMapsPolyline( points, color, width, opacity )
+{
+	var index  = ++gGoogleMapsOverlayNum;
+	var polyline = new google.maps.Polyline({
+		path: points,
+		strokeColor: color,
+		strokeOpacity: opacity,
+		strokeWeight: width,
+		geodesic: true
+	});
+	gGoogleMapsOverlays[index] = polyline;
+	polyline.setMap(gMap);
+	return index;
+}
+
+// GoogleMapsに表示するための名札を作成する。
+//
+//
+
+function googleMapsAddNameTag( name, latlon, vertical )
+{
+	function nameTag( name, latlon )
+	{
+		this.name = name;
+		this.latlon = latlon;
+	}
+	nameTag.prototype = new GOverlay();
+
+	nameTag.prototype.initialize = function(map){
+		var div = document.createElement("div");
+		div.style.border = "1px solid #00FF00";
+		div.style.position = "absolute";
+		div.style.backgroundColor = "#CCFFCC";
+		div.style.fontSize = "8pt";
+		div.style.fontWeight = "bold";
+		if ( vertical ) div.style.width = "15px";
+		else div.style.width = "60px";
+		div.style.verticalAlign = "middle";
+		div.appendChild( document.createTextNode( this.name ) );
+
+		map.getPane(G_MAP_MARKER_PANE).appendChild(div);
+		this.map_ = map;
+		this.div_ = div;
+	}
+
+	nameTag.prototype.redraw = function(force){
+		var p = this.map_.fromLatLngToDivPixel( this.latlon );
+		this.div_.style.left = p.x;
+		this.div_.style.top = p.y - 5;
+	}
+
+	nameTag.prototype.remove = function(){
+		this.div_.parentNode.removeChild( this.div_ );
+	}
+
+	var tag =  new nameTag( name, latlon ) ;
+	gMap.addOverlay( tag );
+
+	return tag;
+}
+
+
+//
+// itemNameとスペースで区切られた文字列を取得する。
+// 
+function getItem( str, itemName )
+{
+	var pos1 = str.indexOf( itemName );
+	if ( pos1 < 0 ) return -1;
+
+	var pos2 = str.indexOf( " ", pos1 );
+	if ( pos2 < 0 ) return -2;
+
+	var item = str.substring( pos1+itemName.length+1, pos2 );
+
+	return item;
+}
+
+
+// infoウィンドウにHTMLテキストを表示する。
+//
+function dispInfoText( str, append )
+{
+	var ele = document.getElementById("infoText");
+	if ( append ) str = ele.innerHTML + str;
+	ele.innerHTML = str;
+}
+
+//
+function dispCursorFormat( format )
+{
+	var lastFormat = gDispCursorFormat;
+	gDispCursorFormat = format;
+	updateCoorDisp( lastFormat );
+}
+
+//-----------------------------------------------------------------------
+//                       変換関数
+//-----------------------------------------------------------------------
+
+// 度単位の緯度経度を文字列に変換する。
+//
+//   lat, lon : 度単位の緯度と経度
+//   format : 文字列のフォーマット（0:msecで丸めた度単位 1:度分秒)
+//
+//   戻り値＝　オブジェクト。.lat:緯度文字列 .lon:経度文字列
+
+function degree2Str( lat, lon, format )
+{
+	
+	var signLat = 1;
+	var signLon = 1;
+
+	if ( lat < 0 ) {
+		signLat = -1;
+		lat = -lat;
+	}
+	if ( lon < 0 ) {
+		signLon = -1;
+		lon = -lon;
+	}
+
+	var strLat = "";
+	var strLon = "";
+	switch ( format ){
+		case 1:	// 度分
+			if ( signLat < 0 ) strLat = "S ";
+			if ( signLon < 0 ) strLon = "W ";
+			strLat += addZero( Degree2Dm( lat ), 4 );
+			strLon += addZero( Degree2Dm( lon ), 5 );
+			break;
+			
+		case 2:	// 度分秒
+			if ( signLat < 0 ) strLat = "S ";
+			if ( signLon < 0 ) strLon = "W ";
+			strLat += addZero( Degree2Dms( lat, "none" ), 6 );
+			strLon += addZero( Degree2Dms( lon, "none" ), 7 );
+			break;
+
+		case 3:	// 度分秒(°′″区切り)
+			if ( signLat < 0 ) strLat = "S ";
+			if ( signLon < 0 ) strLon = "W ";
+			strLat += Degree2Dms( lat, "" );
+			strLon += Degree2Dms( lon, "" );
+			break;
+
+		case 4:	// 度分秒(/区切り)
+			if ( signLat < 0 ) strLat = "S ";
+			if ( signLon < 0 ) strLon = "W ";
+			strLat += Degree2Dms( lat, "/" );
+			strLon += Degree2Dms( lon, "/");
+			break;
+		
+		case 5:	// 度分秒(.区切り)
+			if ( signLat < 0 ) strLat = "S ";
+			if ( signLon < 0 ) strLon = "W ";
+			strLat += Degree2Dms( lat, "." );
+			strLon += Degree2Dms( lon, ".");
+			break;
+
+		case 6:	// ミリ秒
+			var mlat = signLat * Math.round( lat * 3600000 );
+			var mlon = signLat * Math.round( lon * 3600000 );
+			strLat += String( mlat );
+			strLon += String( mlon );
+			break;
+
+		default:
+			strLat = signLat * roundDegree( lat );	
+			strLon = signLon * roundDegree( lon );	
+	}
+
+	var str = new Object();
+	str.lat = strLat;
+	str.lon = strLon;
+	return str;
+}
+
+// 緯度経度の文字列の頭に0を追加する。
+//
+function addZero( str, numDigits )
+{
+	var intStr;
+
+	var periodPos = str.indexOf(".");
+	if ( periodPos >= 0 ) intStr = str.substring( 0, periodPos );
+	else intStr = str;
+
+	var numZero = numDigits - intStr.length;
+	if ( numZero > 0 ) {
+		for( var i=0; i < numZero; i++ ) str = "0" + str;
+	}
+
+	return str;
+}
+
+
+//-----------------------------------------------------------------------
+//                       HTML関連
+//-----------------------------------------------------------------------
+
+// 指定した変換タブを表示する。
+
+function setConvItem( num )
+{
+	var v;
+
+	// 既に表示されいるオーバレイを消す。
+	googleMapsRemoveOverlay( -1 );
+
+	// 緯度経度欄にデータがあれば赤十字を表示
+	if ( gDspPointCoorLatEle.value ) gotoPoint();
+
+	//
+	for ( var i=1; i <= gNumConvItems; i++ ){
+		if ( i == num ) v = "visible";
+		else v = "hidden";
+		//var ele = document.getElementById( "convItem" + i );
+		var ele = document.getElementsByName( "formItem" + i )[0];
+		ele.style.visibility = v;
+
+		if ( v == 'visible' ){
+			var forms = document.getElementsByName( "formItem" + i );
+			var elements = forms[0].elements;
+			for ( var j=0; j < elements.length; j++ ){
+				if ( elements[j].type == "text" ) elements[j].value = "";
+			}
+		}
+
+	}
+	gConvItem = num;
+
+	if ( gPointClicked ){
+		var lat = gPointClicked.lat();
+		var lon = gPointClicked.lng();
+
+		if ( gDatum == TOKYO  ){
+			var latlon = geoDatumTokyo2World( 1, lat, lon, 0 );
+			lat = latlon.lat;
+			lon = latlon.lon;
+		}
+	}
+
+	// ここからは、lat,lonは現在の測地系での値
+	updateConvItem( lat, lon );	
+
+}
+
+//-----------------------------------------------------------------------
+//                       測地系
+//-----------------------------------------------------------------------
+
+//測地系を変更する。
+
+function setDispDatum( num )
+{
+	var blue = "#0000ff";
+	var black = "#000000";
+	var color;
+
+	if ( num == gDatum ) return;
+
+	if ( num == 1 ) {
+		gDatum = TOKYO;
+		color = blue;
+		gMeshcodeTitleEle.innerHTML = "<b>地域メッシュコードN</b>";
+	}
+	else {
+		gDatum = WORLD;
+		color = black;
+		gMeshcodeTitleEle.innerHTML = "<b>地域メッシュコード</b>";
+	}
+
+	setTextboxColor( color );
+	var latlon = updateCoorDispDatum();
+	if ( ! latlon ) return;
+
+	updateConvItem( latlon.lat, latlon.lon );
+}
+
+
+function setTextboxColor( color )
+{
+	gDspPointCoorLatEle.style.color = color;
+	gDspPointCoorLonEle.style.color = color;
+	gCursorLatEle.style.color = color;
+	gCursorLonEle.style.color = color;
+	gJapanDatumStrEle.style.color = color;
+	gSonyCodeEle.style.color = color;
+
+	for ( i=1; i <= 8; i++ ) gMeshcodeEle[i].style.color = color;
+	gMeshcodeTitleEle.style.color = color;
+
+}
+
+//
+// 表示項目の内容を更新する。
+//
+function updateConvItem( lat, lon )
+{
+	switch( gConvItem ){
+		case MESHCODE:
+			if ( lat ) dispMeshCode( lat, lon );
+			else dispMeshCode( null );
+			break;
+
+		case LOCAPO:
+			if ( lat ) dispLocapo( lat, lon );
+			else dispLocapo( null );
+			break;
+
+		case SONYCODE:
+			if ( lat ) dispSonyCode( lat, lon );
+			else dispSonyCode( null );
+			break;
+	}
+}
+
+//-----------------------------------------------------------------------
+//                   住所
+//-----------------------------------------------------------------------
+
+// 住所検索
+//
+
+function addressMatch( address, mapType )
+{
+	var point;
+	var eleGoogle = document.getElementById("googleGeocoder");
+	var eleYahoo = document.getElementById("yahooGeocoder");
+	var red = "#ff0000";
+	var black = "#000000";
+
+	eleGoogle.style.color = black;
+	eleYahoo.style.color = black;
+
+	switch( mapType ){
+		case GOOGLEMAPS:
+			var geocoder = new google.maps.Geocoder();
+			geocoder.geocode( {'address':address}, googleGeocoded );
+			eleGoogle.style.color = red;
+			break;
+
+		case YAHOOMAPS:
+			var url = gYahooGeocoderUrl + "?address=" + encodeURI( address );
+			xmlHttpRequest( url, "", yahooGeocoded , 20000, "", "" );
+			eleYahoo.style.color = red;
+			break;
+	}
+}
+function googleGeocoded(result, status) {
+	if (status != google.maps.GeocoderStatus.OK) {
+    	alert('Geocoding failed. ' + status);
+	} else {
+		var point = result[0].geometry.location;
+		var addressFormatted = result[0].formatted_address +
+		dispAddressMatch( point );
+	}
+}
+
+function yahooGeocoded( status, body, header )
+{
+	var latlng = new Object();
+	if ( status == 200 ){
+		var str;
+		if ( body.indexOf( "error" ) >= 0 ) {
+			alert(body);
+			return;
+		}
+
+		var coor = "<Coordinates>";
+		var pos1 = body.indexOf( coor );
+		if ( pos1 < 0 ) return;
+		var pos2 = body.indexOf( "</Coordinates>", pos1 );
+		if ( pos2 > 0) {
+			pos1 += coor.length;
+			str = body.substr( pos1, pos2 - pos1 );
+			var lonlat = str.split( "," );
+			if ( lonlat.length != 2 ) return;
+			var lon = lonlat[0];
+			var lat = lonlat[1];
+			var point = new google.maps.LatLng( parseFloat(lat), parseFloat(lon) );
+		}
+	}
+
+	dispAddressMatch( point );
+}
+
+function dispAddressMatch( latlng )
+{
+	if ( ! latlng ) alert("指定された住所が見つかりません。");
+	else {
+		gPointClicked = latlng;
+		googleMapsSetPoint();
+		gMap.setCenter( gPointClicked );
+	}
+}
+
+
+//-----------------------------------------------------------------------
+//                   メッシュコード
+//-----------------------------------------------------------------------
+
+// 指定した点のメッシュコードをテキストボックスと地図上に表示する。
+//
+// ここで指定するlat,lonは現在の測地系での値を指定する。
+//
+// latにnullを指定した場合はテキストボックスをクリアする。
+//
+function dispMeshCode( lat, lon )
+{
+	// メッシュコードを求め、テキストボックスに表示
+	var ret = dispMeshCodeTextbox( lat, lon );
+	if ( ret < 0 ) return;
+
+	// 地図上にカレントのメッシュタイプの枠を表示
+	if ( gMeshDispType < 1 ) gMeshDispType = 3;
+	var ele = gMeshcodeEle[ gMeshDispType ];
+	var code = ele.value;
+	dispMeshRect( gMeshDispType, code )
+}
+
+
+
+// 指定した点のメッシュコードをテキストボックスに表示する。
+function dispMeshCodeTextbox( lat, lon )
+{
+
+	if ( ! lat ){
+		var ele;
+		for (var i=1; i<= 8; i++ ){
+			gMeshcodeEle[i].value = "";
+		}
+		return -1;
+	}
+
+	var meshcode = getMeshCode( lat, lon );
+	if (meshcode[0] < 0) {
+		alert("メッシュコードが適用範囲外かエラーが起きました。エラーコード：" + meshcode[0]);
+		return -2;
+	}
+
+	var code = meshcode[1];
+	gMeshcodeEle[1].value = code;
+
+	code += "-" + meshcode[2];
+	var code2 = code;
+	gMeshcodeEle[2].value = code;
+
+	code += meshcode[3];
+	gMeshcodeEle[3].value = code;
+
+	code += "-" + meshcode[4];
+	gMeshcodeEle[4].value = code;
+
+	code += "-" + meshcode[5];
+	gMeshcodeEle[5].value = code;
+
+	code += "-" + meshcode[6];
+	gMeshcodeEle[6].value = code;
+
+	code = code2 + meshcode[7];
+	gMeshcodeEle[7].value = code;
+
+	code = code2 + meshcode[8] + "-5";
+	gMeshcodeEle[8].value = code;
+
+}
+
+
+// メッシュコードの取得
+// 
+//  lat,lon  : 緯度経度（度単位）
+//
+//  戻り値：メッシュコードの配列
+//         meshcode[0] : 0=正常終了 負数=エラー
+//                 [1] : １次メッシュコード（４桁）
+//                 [2] : ２次メッシュコード（２桁）
+//                 [3] : ３次メッシュコード（２桁）
+//                 [4] : ２分の１メッシュコード（１桁）
+//                 [5] : ４分の１メッシュコード（１桁）
+//                 [6] : ８分の１メッシュコード（１桁）
+//                 [7] : ５倍メッシュコード（１桁）
+//                 [8] : ２倍メッシュコード（２桁）
+//              
+function getMeshCode( lat, lon )
+{
+	var ret = new Array();
+	var retCode = 0;
+	var MINDEG = 0.00000000001;
+	
+	try {
+	if ( lat < 0 || lon < 0 ) throw -1;
+
+	// 一次メッシュ(緯度４０分、経度１度のメッシュ）
+	var lat15m = Math.floor( lat * 1.5);
+	var mesh1 = lat15m * 100 + Math.floor(lon) - 100;
+
+	var latResidue = lat - lat15m / 1.5;
+	var lonResidue = lon - Math.floor(lon);
+	if ( -MINIMUM < latResidue && latResidue < MINIMUM ) latResidue = 0;
+	if ( -MINIMUM < lonResidue && lonResidue < MINIMUM ) lonResidue = 0;
+	
+	// 二次メッシュ(緯度５分、経度7.5分のメッシュ）
+	var lat2 = Math.floor( latResidue / 5.0 * 60  + MINDEG);
+	if ( lat2 > 7 ) throw -2;
+	var lon2 = Math.floor( lonResidue / 7.5 * 60  + MINDEG);
+	if ( lon2 > 7 ) throw -3;
+
+	var mesh2 = lat2 * 10 + lon2;
+	if ( mesh2 < 10 ) mesh2 = format0( mesh2 );
+
+	latResidue -= lat2 * 5.0 / 60;
+	lonResidue -= lon2 * 7.5 / 60;
+	if ( -MINIMUM < latResidue && latResidue < MINIMUM ) latResidue = 0;
+	if ( -MINIMUM < lonResidue && lonResidue < MINIMUM ) lonResidue = 0;
+
+	// 三次メッシュ(緯度0.5分、経度0.75分のメッシュ）
+	var lat3 = Math.floor( latResidue / 0.5 * 60  + MINDEG);
+	if ( lat3 > 9 ) throw -4;
+	var lon3 = Math.floor( lonResidue / 0.75 * 60  + MINDEG);
+	if ( lon3 > 9 ) throw -5;
+
+	var mesh3 = lat3 * 10 + lon3;
+	if ( mesh3 < 10 ) mesh3 = format0( mesh3 );
+
+	latResidue -= lat3 * 0.5 / 60;
+	lonResidue -= lon3 * 0.75 / 60;
+	if ( -MINIMUM < latResidue && latResidue < MINIMUM ) latResidue = 0;
+	if ( -MINIMUM < lonResidue && lonResidue < MINIMUM ) lonResidue = 0;
+
+	// 5倍メッシュ(三次メッシュの５倍メッシュ）
+	var mesh5X = Math.floor(lat3 / 5 + MINDEG) * 2 + Math.floor(lon3 / 5 + MINDEG) + 1;
+	
+	// 2倍メッシュ(三次メッシュの2倍メッシュ）
+	var mesh2X = Math.floor(lat3 / 2 + MINDEG) * 20 + Math.floor(lon3 / 2 + MINDEG) *2;
+	if ( mesh2X < 10 ) mesh2X = format0( mesh2X );
+
+	// 2分の1メッシュ(三次メッシュの２分の１メッシュ）
+	var lat4 = Math.floor( latResidue / (0.5/2) * 60  + MINDEG);
+	if ( lat4 > 1 ) throw -6;
+	var lon4 = Math.floor( lonResidue / (0.75/2) * 60  + MINDEG);
+	if ( lon4 > 1 ) throw -7;
+
+	var mesh4 = lat4 * 2 + lon4 + 1;
+
+	latResidue -= lat4 * (0.5/2) / 60;
+	lonResidue -= lon4 * (0.75/2) / 60;
+	if ( -MINIMUM < latResidue && latResidue < MINIMUM ) latResidue = 0;
+	if ( -MINIMUM < lonResidue && lonResidue < MINIMUM ) lonResidue = 0;
+
+	// 4分の1メッシュ(三次メッシュの4分の１メッシュ）
+	var lat5 = Math.floor( latResidue / (0.5/4) * 60  + MINDEG);
+	if ( lat5 > 1 ) throw -8;
+	var lon5 = Math.floor( lonResidue / (0.75/4) * 60  + MINDEG);
+	if ( lon5 > 1 ) throw -9;
+
+	var mesh5 = lat5 * 2 + lon5 + 1;
+
+	latResidue -= lat5 * (0.5/4) / 60;
+	lonResidue -= lon5 * (0.75/4) / 60;
+
+	if ( -MINIMUM < latResidue && latResidue < MINIMUM ) latResidue = 0;
+	if ( -MINIMUM < lonResidue && lonResidue < MINIMUM ) lonResidue = 0;
+
+	// 8分の1メッシュ(三次メッシュの8分の１メッシュ）
+	var lat6 = Math.floor( latResidue / (0.5/8) * 60  + MINDEG);
+	if ( lat6 > 1 ) throw -10;
+	var lon6 = Math.floor( lonResidue / (0.75/8) * 60  + MINDEG);
+	if ( lon6 > 1 ) throw -11;
+
+	var mesh6 = lat6 * 2 + lon6 + 1;
+
+	// 戻り値
+	ret[1] = mesh1;
+	ret[2] = mesh2;
+	ret[3] = mesh3;
+	ret[4] = mesh4;
+	ret[5] = mesh5;
+	ret[6] = mesh6;
+	ret[7] = mesh5X;
+	ret[8] = mesh2X;
+
+	}
+	catch( e ){
+		retCode= e;
+		var errstr = "error:" + retCode + " lat2=" + lat2 + " lon2=" + lon2 +
+				" lat3=" + lat3 + " lon3=" + lon3 +" lat4=" + lat4 + " lon4=" + lon4 +
+				" lat5=" + lat5 + " lon5=" + lon5 +" lat6=" + lat6 + " lon6=" + lon6 +
+				" latR=" + latResidue + " lonR=" + lonResidue;
+		alert(errstr);
+	}
+
+	ret[0] = retCode;
+	return ret;
+}
+
+// ０付加
+function format0( num )
+{
+	if ( num == 0 ) return "00";
+	if ( num < 10 ) return "0" + num;
+	return num;
+}
+
+//
+// メッシュコード表示ボタンが押された時の処理
+//     テキストボックスに全てのメッシュコードを表示し、地図上に枠を表示
+//
+function onDispMeshCode( meshType )
+{
+	var ele = gMeshcodeEle[ meshType ];
+	var meshCode = ele.value;
+
+	if ( ! meshCode ){
+		alert("メッシュコードを指定した後で表示ボタンを押して下さい。");
+		return;
+	}
+
+	// メッシュコードの枠をグレーに戻す
+	if ( gMeshDispType > 0 ){
+		ele = gMeshcodeEle[ gMeshDispType ];
+		ele.style.borderColor = MESH_TEXTFRAME_COLOR;
+	}
+
+	if ( gMeshTextboxChanged ){
+		gMeshTextboxChanged = 0;
+		//メッシュコードの中心の緯度経度を求める 
+		var meshLatLon = meshCode2LatLon( meshCode );
+		if ( meshLatLon.error ){
+			alert( "メッシュ表示エラー：code=" + meshLatLon.error );
+			return;
+		}
+		var centerLat = ( meshLatLon.lat0 + meshLatLon.lat1 ) / 2;
+		var centerLon = ( meshLatLon.lon0 + meshLatLon.lon1 ) / 2;
+
+		// 赤の十字の移動
+		googleMapsRemoveOverlay(-1);
+		googleMapsDispRedCross( centerLat, centerLon, gDatum, 1 );
+	
+		// メッシュコードと枠を表示
+		gMeshDispType = meshType;
+		dispMeshCode( centerLat, centerLon )
+	}
+	else{
+		dispMeshRect( meshType, meshCode )
+	}
+	
+}
+
+
+//
+// メッシュの矩形を表示する。
+//
+// ・測地系変換を行っている。
+//
+function dispMeshRect( meshType, meshCode )
+{
+	var ele,meshLatLon;
+
+	meshLatLon = meshCode2LatLon( meshCode );
+	if ( meshLatLon.error ){
+		alert( "メッシュ表示エラー：code=" + meshLatLon.error );
+		return;
+	}
+
+
+	var points = new Array();
+	var lat0 = meshLatLon.lat0;
+	var lon0 = meshLatLon.lon0;
+	var lat1 = meshLatLon.lat1;
+	var lon1 = meshLatLon.lon1;
+	
+	if ( gDatum == TOKYO ){
+		latlon = geoDatumTokyo2World( 1, lat0, lon0, 0 );
+		lat0 = latlon.lat;
+		lon0 = latlon.lon;
+
+		latlon = geoDatumTokyo2World( 1, lat1, lon1, 0 );
+		lat1 = latlon.lat;
+		lon1 = latlon.lon;
+	}
+
+	points[0] = new google.maps.LatLng( lat0, lon0 );
+	points[1] = new google.maps.LatLng( lat0, lon1 );
+	points[2] = new google.maps.LatLng( lat1, lon1 );
+	points[3] = new google.maps.LatLng( lat1, lon0 );
+	points[4] = points[0];
+
+	if ( gMeshRectNum ) googleMapsRemoveOverlay( gMeshRectNum );
+	gMeshRectNum = googleMapsPolyline( points, "#FF0000" , 2, 0.8 );
+
+	ele = gMeshcodeEle[ meshType ];
+	ele.style.borderColor = "#ff0000";
+	ele.style.borderStyle = "solid";
+	gMeshDispType = meshType;
+}
+
+
+// メッシュコードから緯度経度範囲を求める。
+// 
+//  code  : メッシュコード(ハイフンは入っていても良い）
+//
+//  戻り値：
+//         .error    : 正常終了は0、エラーは負数
+//         .lat0     : 左下緯度（度単位）
+//         .lon0     : 左下経度
+//         .lat1     : 右上緯度
+//         .lon1     : 右上経度
+//              
+// ・この関数では測地系は考慮していない。
+
+function meshCode2LatLon( code )
+{
+	var num;
+	var ret = new Object();
+
+	code = code.replace( /[^0-9]/g, "" );
+	
+	var numDigits = code.length;
+
+	try {
+	if ( numDigits < 4 ) throw -1;
+
+	// 一次メッシュ
+	var lat = Number( code.substr( 0, 2 ) ) / 1.5;
+	var lon = Number( code.substr( 2, 2 ) ) + 100;
+
+	if( lat < -90 || lat > 90 || lon < -180 || lon > 180 ) throw -2;
+	if ( numDigits == 4 ) throw 1;
+	if ( numDigits == 5 ) throw -3;
+
+	// 二次メッシュ
+	var latCode = Number( code.substr( 4, 1 ) );
+	var lonCode = Number( code.substr( 5, 1 ) );
+	if ( latCode > 7 || lonCode > 7 ) throw -4;
+
+	lat += latCode * 5.0 / 60;
+	lon += lonCode * 7.5 / 60;
+
+	if ( numDigits == 6 ) throw 2;
+
+	// 5倍メッシュ
+	if ( numDigits == 7 ){
+		num = Number( code.substr( 6, 1 ) );
+		if ( num < 1 || num > 4 ) throw -5;
+		num--;
+
+		latCode = Math.floor( num / 2 );
+		lonCode = num - latCode * 2;
+
+		lat += latCode * 5.0 / 2 / 60;
+		lon += lonCode * 7.5 / 2 / 60;
+
+		throw 7;
+	}
+
+	// 三次メッシュ
+	latCode = Number( code.substr( 6, 1 ) );
+	lonCode = Number( code.substr( 7, 1 ) );
+
+	lat += latCode * 0.5 / 60;
+	lon += lonCode * 0.75 / 60;
+
+	if ( numDigits == 8 ) throw 3;
+
+	// 次のメッシュ
+	num = Number( code.substr( 8, 1 ) );
+	if ( num < 1 || num > 5 ) throw -6;
+
+	// 2倍メッシュ
+	if ( num == 5 ) throw 8;
+
+	// 2分の1メッシュ
+	num--;
+	latCode = Math.floor( num / 2 );
+	lonCode = num - latCode * 2;
+
+	lat += latCode * 0.5 / 2 / 60;
+	lon += lonCode * 0.75 / 2 / 60;
+
+	if (numDigits == 9 ) throw 4;
+
+	// 4分の1メッシュ
+	num = Number( code.substr( 9, 1 ) );
+	if ( num < 1 || num > 4 ) throw -7;
+
+	num--;
+	latCode = Math.floor( num / 2 );
+	lonCode = num - latCode * 2;
+
+	lat += latCode * 0.5 / 4 / 60;
+	lon += lonCode * 0.75 / 4 / 60;
+
+	if (numDigits == 10 ) throw 5;
+
+	// 8分の1メッシュ
+	num = Number( code.substr( 10, 1 ) );
+	if ( num < 1 || num > 4 ) throw -8;
+
+	num--;
+	latCode = Math.floor( num / 2 );
+	lonCode = num - latCode * 2;
+
+	lat += latCode * 0.5 / 8 / 60;
+	lon += lonCode * 0.75 / 8 / 60;
+
+	throw 6;
+
+	}
+	catch( e ){
+		if ( e > 0 && e < 9 ) {
+			var mlat,mlon;
+
+			if( lat > -90 && lat < 90 && lon > -180 && lon < 180 ){
+				ret.error = 0;
+				ret.lat0 = lat;
+				ret.lon0 = lon;
+
+				switch( e ){
+					case 1: mlat = 40; mlon = 60; break;
+					case 2: mlat = 5; mlon = 7.5; break;
+					case 3: mlat = 0.5; mlon = 0.75; break;
+					case 4: mlat = 0.5 / 2; mlon = 0.75 / 2; break;
+					case 5: mlat = 0.5 / 4; mlon = 0.75 / 4; break;
+					case 6: mlat = 0.5 / 8; mlon = 0.75 / 8; break;
+					case 7: mlat = 0.5 * 5; mlon = 0.75 * 5; break;
+					case 8: mlat = 0.5 * 2; mlon = 0.75 * 2; break;
+				}
+				ret.lat1 = ret.lat0 + mlat / 60;
+				ret.lon1 = ret.lon0 + mlon / 60;
+			}
+			else ret.error = -100;
+		}
+		else {
+			ret.error = e;
+		}
+	}
+
+	return ret;
+}
+
+//-----------------------------------------------------------------------
+//                   ロカポ
+//-----------------------------------------------------------------------
+//
+// ロカポで指定された位置を地図に表示する。
+//
+function dispLocapoPosition( locapo )
+{
+	if ( gDatum == TOKYO ){
+		alert("ロカポは日本測地系では表示できません。");
+		return;
+		//latlon = geoDatumTokyo2World( 1, latlon.lat, latlon.lon, 0 );
+	}
+
+	if ( ! locapo ){
+		locapo = document.getElementById( "locapoText" ).value;
+		locapo = locapo.replace( /[ 　\t]/, "" );
+		var format = /([A-Z]+[0-9]\.){3}[A-Z]+[0-9]/;
+		if ( locapo.length < 7  || ! locapo.match(format) ){
+			alert("ロカポの形式に合致しているか確認して下さい。");
+			retrun;
+		}
+	}
+
+	var latlon =  LocaPoint2LatLon( locapo );
+
+	var point = new google.maps.LatLng( latlon.lat, latlon.lon );
+	googleMapsClick2( point );
+}
+
+// 緯度経度をロカポに変換し表示する。
+//
+// lat にnullを指定するとテキストボックスをクリアする。
+//
+// ・この関数では測地系は考慮していない。
+//
+function dispLocapo( lat, lon )
+{
+	var ele = document.getElementById( "locapoText" );
+
+	if ( !lat ) {
+		ele.value = "";
+		return;
+	}
+
+	if ( gDatum == TOKYO ){
+		alert("ロカポは日本測地系では表示できません。");
+		ele.value = "";
+		return;
+	}
+
+	var location = new Object();
+	location.lat = lat;
+	location.lon = lon;
+	var locapoStr =  LatLon2LocaPoint(location);
+	ele.value = locapoStr;
+}
+
+//　ロカポを緯度経度に変換する。
+//
+//  ソースコード： （有）ロケージングの下記サイトに掲載されているものです。
+//   http://www.locapoint.com/jp/samplecode.html
+//
+// ・この関数では測地系は考慮していない。
+
+function LocaPoint2LatLon(locapoint){
+    var location = new Object();
+
+	location.lat =(
+		            (locapoint.charCodeAt(0)-65)*1757600
+					+(locapoint.charCodeAt(1)-65)*67600
+					+(locapoint.charCodeAt(2)-48)*6760
+					+(locapoint.charCodeAt(8)-65)*260
+					+(locapoint.charCodeAt(9)-65)*10
+					+(locapoint.charCodeAt(10)-48)*1
+					)*180/45697600-90;
+	location.lon = (
+					(locapoint.charCodeAt(4)-65)*1757600
+					+(locapoint.charCodeAt(5)-65)*67600
+					+(locapoint.charCodeAt(6)-48)*6760
+					+(locapoint.charCodeAt(12)-65)*260
+					+(locapoint.charCodeAt(13)-65)*10
+					+(locapoint.charCodeAt(14)-48)*1
+					)*360/45697600-180;
+	return(location);
+}
+
+//　緯度経度をロカポに変換する。
+//
+//  ソースコード： （有）ロケージングの下記サイトに掲載されているものです。
+//   http://www.locapoint.com/jp/samplecode.html
+//
+// ・この関数では測地系は考慮していない。
+//
+function LatLon2LocaPoint(location){
+	var latitude_step = (location.lat + 90)/180*45697600;
+	var longitude_step = (location.lon + 180)/360*45697600;
+
+	var locapoint = String.fromCharCode(
+					latitude_step/1757600%26 + 65,
+					latitude_step/67600%26 + 65,
+					latitude_step/6760%10 + 48,
+					46,
+					longitude_step/1757600%26 + 65,
+					longitude_step/67600%26 + 65,
+					longitude_step/6760%10 + 48,
+					46,
+					latitude_step/260%26 + 65,
+					latitude_step/10%26 + 65,
+					latitude_step/1%10 + 48,
+					46,
+					longitude_step/260%26 + 65,
+					longitude_step/10%26 + 65,
+					longitude_step/1%10 + 48
+					);
+	return(locapoint);
+}
+
+//-----------------------------------------------------------------------
+//                   ソニーコード
+//-----------------------------------------------------------------------
+//
+// ソニーコードで指定された位置を地図に表示する。
+//
+function dispSonyCodePosition( sonyCode )
+{
+
+	if ( ! sonyCode ){
+		sonyCode = gSonyCodeEle.value;
+		sonyCode = sonyCode.replace( /[ 　\t]/, "" );
+		var format = /([A-Z=0-9])/;
+		if ( sonyCode.length != 9 || ! sonyCode.match(format) ){
+			alert("ソニー方式に合致しているか確認して下さい。");
+			return;
+		}
+	}
+
+	var latlon =  sonyCode2LatLon( sonyCode );
+	if ( gDatum == TOKYO ){
+		latlon = geoDatumTokyo2World( 1, latlon.lat, latlon.lon, 0 );
+	}
+
+	var point = new google.maps.LatLng( latlon.lat, latlon.lon );
+	googleMapsClick2( point );
+}
+
+// 緯度経度をソニーコードに変換し表示する。
+//
+// lat にnullを指定するとテキストボックスをクリアする。
+//
+// ・この関数では測地系は考慮していない。
+//
+function dispSonyCode( lat, lon )
+{
+
+	if ( !lat ) {
+		gSonyCodeEle.value = "";
+		return;
+	}
+
+	var sonyCode=  LatLon2SonyCode( lat, lon );
+	gSonyCodeEle.value = sonyCode;
+}
+
+//　ソニーコードを緯度経度に変換する。
+//
+//
+// ・この関数では測地系は考慮していない。
+
+function sonyCode2LatLon( sonyCode ){
+    var location = new Object();
+	
+	var sum = 0;
+	var c37 = 1;
+	for ( var i=0; i< 9; i++ ){
+		var index = gSonyChars.indexOf( sonyCode.charAt(8-i) );
+		sum += index * c37;
+		c37 *= 37;
+	}
+	var latSec = Math.floor( sum / 16777216 );
+	var lonSec = sum % 16777216;
+
+	location.lat = latSec / 36000 - 90;
+	location.lon = lonSec / 36000 - 180;
+
+	return(location);
+}
+
+//　緯度経度をソニーコードに変換する。
+//
+// ・この関数では測地系は考慮していない。
+//
+function LatLon2SonyCode( lat, lon ){
+	var i;
+	var latSec = ( lat + 90 ) * 36000; // 0.1秒単位
+	var lonSec = ( lon + 180 ) * 36000;
+
+	var sum = Math.round( latSec )  * 16777216 + Math.round( lonSec );
+
+	var m = new Array();
+	
+	var c37 = 1;
+	for ( i = 0; i < 9; i++ ){
+		m[i] = Math.floor( sum / c37 ) % 37;
+		c37 *= 37;
+	}
+
+	var sonyCode = "";
+	for ( i = 8; i >=0; i-- ) sonyCode += gSonyChars.charAt( m[i] );
+
+	return(sonyCode);
+}
+
+</SCRIPT>
+		
+<style type="text/css">
+<!--
+.nanboku {
+	color: #0000ff;
+}
+.tozai {
+	color: #ff0000;
+}
+-->
+</style>
+
+</HEAD>
+
+<BODY onunload="GUnload()">
+<!--FORM name="f"-->
+<TABLE>
+	<TR>
+	<TD align="right" style='font-family:"MS ゴシック";font-size:xx-large'>
+		Geocode Viewer
+	</TD>
+	</TR>
+	<TR width="800">
+	<TD width="550">
+		<br>
+		赤の十字： 緯度
+		<INPUT type="text" id="dspPointCoorLat" size="20">
+		経度
+		<INPUT type="text" id="dspPointCoorLon" size="20">
+		<INPUT type="button" value="表示" onclick="gotoPoint()">
+	</TD>
+	<TD width="250" align="center">
+			各種のジオコードを表示します。<br>
+			表示項目<br>
+			<select id="menu" onchange="setConvItem( parseInt(this.options[this.selectedIndex].value) )" >
+				<option value="0">表示項目を選んで下さい</option>
+				<option value="1">住所検索</option>
+				<option value="2">地域メッシュコード</option>
+				<option value="3">ロカポ</option>
+				<option value="4">ソニー方式</option>
+			</select>
+	</TD>
+	</TR>
+</TABLE>
+<TABLE>
+	<TR width="800">
+		<TD align="center">
+		<!--INPUT style="width:400" type="text" id="infoText" align="center"-->
+		<!-- 地図表示エリア -->
+		<div id="map" style="width: 500; height: 400;"></div>
+		</TD>
+		<TD wdith="10">　</TD>
+		<TD valign="top" width="300">
+			<form name="formItem1" style="position:absolute">
+				<BR>住所<BR>
+				<input type="text" id="adrText" name="adrText" size="40"><br><br>
+				<input type="button" id="googleGeocoder" value="Googleジオコーダで表示" onclick="addressMatch(document.all.adrText.value, GOOGLEMAPS)"><br><br>
+				<input type="button" id="yahooGeocoder" value="Yahooジオコーダで表示" onclick="addressMatch(document.all.adrText.value, YAHOOMAPS)">
+			</form>
+			</form>
+			<form name="formItem3" style="position:absolute">
+				<BR>ロカポ<BR>
+				<input type="text" id="locapoText" size="40"><br>
+				<input type="button" value="表示" onclick="dispLocapoPosition()"><br><br>
+				<b>・ロカポに関して</b><br>
+				<a href="http://www.locapoint.com/jp/">ロカポ(LocaPoint)オフィシャルページ</a><br>
+			</form>
+			<form name="formItem2" style="position:absolute">
+				<TABLE width="350">
+					<caption id="meshcodeTitle" align="center"> <b>地域メッシュコード</b></caption>
+					<?php
+						$meshText = array( " ", "１次", "２次", "３次", "1/2", "1/4", "1/8", "５倍", "２倍" );
+						for ( $i = 1; $i <= 8; $i++ ){
+							echo "<TR width='350'> <TD>$meshText[$i]メッシュコード</TD><TD><input type='text' id='meshcodeText$i' size='20' onChange='gMeshTextboxChanged=1;'></TD> <TD><input type='button' value='表示' onclick='onDispMeshCode($i)'></TD></TR>"."\n";
+						}
+					?>
+				</TABLE>
+
+				<br><b>・別名</b><br>
+				　３次メッシュ：基準地域メッシュ、１kmメッシュ、標準メッシュ<br>
+				　1/2メッシュ：４次メッシュ、500mメッシュ<br>
+				　1/4メッシュ：５次メッシュ、250mメッシュ<br>
+				　1/8メッシュ：６次メッシュ、125mメッシュ<br>
+				<br><b>・地図上の点のメッシュコードを表示する場合</b><br>
+				　地点をクリックして下さい。<br><br>
+				<b>・メッシュコードの区域を地図上に表示する場合</b><br>
+				　メッシュコードを指定して表示ボタンを押して下さい。ハイフンは無くても構いません。<br><br>
+				<b>・測地系に関して</b><br>
+				　測地系が違うとメッシュコードが表す範囲も違ってきます。JIS規格では日本測地系でのメッシュコードを「地域メッシュコードN」と呼ぶようになっていますが、測地系の変更以前に作成された資料ではそのような名称は使われていません。新旧のメッシュコードを比較する場合は測地系の違いにご注意下さい。<br><br>
+				<b>・地域メッシュコードに関して</b><br>
+				<a href="http://www.stat.go.jp/data/mesh/gaiyou.htm">地域メッシュ統計の概要</a><br>
+			</form>
+			<form name="formItem4" style="position:absolute">
+				<BR>ソニー方式<BR>
+				<input type="text" id="sonyText" size="40"><br>
+				<input type="button" value="表示" onclick="dispSonyCodePosition()"><br><br>
+				<b>・ソニー方式に関して</b><br>
+				　この方式は、できる限り少ない文字数<br>
+				　で緯度経度を表すようにしたものです。<br>
+				　緯度経度を0.1秒の単位で表し、緯度を<br>
+				　24ビット左シフトし、経度を足した<br>
+				　値を37進数で表します。37進数は <br>
+				　"0-9" '=' "A-Z"の３７文字で表現します。<br><br>
+				　この方式は1997年に「位置情報符号化<br>
+				　装置及び方法」（公開：H10-207352)<br>
+				　として出願されましたが日本では特許には<br>
+				　なっていません。米ではUS Patent6005504で<br>
+				　登録されています。<br>
+				　当ページで表示されるコードは明細書<br>
+				　の実施例に倣ってコーディングしたもの<br>
+				　です。<br>
+
+			</form>
+		</TD>
+
+	</TR>
+	<TR>
+		<TD width="500">
+		カーソル： 緯度
+		<input type="text" id="cursorLat" size="20">
+		 経度
+		<input type="text" id="cursorLon" size="20"><br>
+		表示形式：
+		<select id="dspCursorFormat" onchange="dispCursorFormat( parseInt(this.options[this.selectedIndex].value) )" >
+			<option value="0">度 (ddd.ddd)</option>
+			<option value="1">度分 (dddmm.mmm)</option>
+			<option value="2">度分秒 (dddmmss.sss)</option>
+			<option value="3">度分秒 (ddd° mm’ ss.sss)</option>
+			<option value="4">度分秒 (ddd/mm/ss.sss)</option>
+			<option value="5">度分秒 (ddd.mm.ss.sss)</option>
+			<option value="6">ミリ秒 (sssssssss)</option>
+		</select><BR>
+		測地系：
+		<input type="radio" name="dspDatum" onClick="setDispDatum(0)" checked>世界測地系（GRS80/WGS84)
+		<input type="radio" name="dspDatum" onClick="setDispDatum(1)">
+			<span id="japanDatumStr">(旧)日本測地系（BESSEL）</span><BR>
+		</TD>
+	</TR>
+	<TR>
+	<TD>
+	<br>
+	○使い方<br>
+	　・シングルクリック：　赤十字の移動<br><br>
+	　・ダブルクリック：　中心位置の移動<br><br>
+	　・指定した緯度経度位置の表示：<br>
+	 　赤の十字の緯度経度欄に緯度経度を入力し、表示ボタンを押す。<br>
+	 　緯度経度の形式は"表示形式"が度の場合は度単位で、度分秒の場合<br>
+	 　は度、分、秒を区切り文字で区切って入力。区切り文字は数字、<br>
+	 　小数点以外の任意の１文字（漢字でも可）を入力。<br>
+	 　北緯、東経の場合は符号は付けない。南緯の場合はマイナスまたはS、<br>
+	 　西経の場合はマイナスまたはWを頭に付ける。
+	 <br><br>
+	○注：<br>
+	　・世界測地系と日本測地系の変換はJGD2000ではなく、全国を共通の<br>
+	　　パラメータで変換しています。<br>
+	　　そのため、地域によっては10m程度の誤差が生じる場合があります。
+	</TD>
+	</TR>
+</TABLE>
+<TABLE>
+	<TR>
+	<TD width=800 align="center">
+	<a href="http://www.geosense.co.jp/">ホーム</a>　　
+	<a href="http://www.geosense.co.jp/html/otoiawase.html">お問い合わせ</a>
+	</TD>
+	</TR>
+</TABLE>
+<BR>
+<!--/FORM-->
+</BODY>
+</HTML>
