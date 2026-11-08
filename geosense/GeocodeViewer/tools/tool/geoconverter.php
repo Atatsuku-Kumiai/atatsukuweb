@@ -1060,11 +1060,16 @@ function updateConvItem( lat, lon )
 
 function addressMatch( address, mapType )
 {
-	var point;
-	var eleGoogle = document.getElementById("googleGeocoder");
-	var eleYahoo = document.getElementById("yahooGeocoder");
-	var red = "#ff0000";
-	var black = "#000000";
+    // 空の場合は検索しない
+    if ( !address || !address.trim() ) {
+        alert("検索する住所を入力してください");
+    }
+
+    var point;
+    var eleGoogle = document.getElementById("googleGeocoder");
+    var eleYahoo = document.getElementById("yahooGeocoder");
+    var red = "#ff0000";
+    var black = "#000000";
 
 	eleGoogle.style.color = black;
 	eleYahoo.style.color = black;
@@ -1842,12 +1847,11 @@ function LatLon2SonyCode( lat, lon ){
 		</TD>
 		<TD wdith="10">　</TD>
 		<TD valign="top" width="300">
-			<form name="formItem1" style="position:absolute">
+			<form name="formItem1" style="position:absolute" onsubmit="return false;">
 				<BR>住所<BR>
 				<input type="text" id="adrText" name="adrText" size="40"><br><br>
-				<input type="button" id="googleGeocoder" value="Googleジオコーダで表示" onclick="addressMatch(document.all.adrText.value, GOOGLEMAPS)"><br><br>
-				<input type="button" id="yahooGeocoder" value="Yahooジオコーダで表示" onclick="addressMatch(document.all.adrText.value, YAHOOMAPS)">
-			</form>
+				<input type="button" id="googleGeocoder"value="Googleジオコーダで表示" onclick="addressMatch(document.all.adrText.value, GOOGLEMAPS)"><br><br>
+				<input type="button" id="yahooGeocoder"	value="Yahooジオコーダで表示" onclick="addressMatch(document.all.adrText.value, YAHOOMAPS)">
 			</form>
 			<form name="formItem3" style="position:absolute">
 				<BR>ロカポ<BR>
